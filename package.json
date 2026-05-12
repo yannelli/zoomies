@@ -6,11 +6,11 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "sh -c 'mkdir -p .next/standalone/.next && rm -rf .next/standalone/.next/static && cp -R .next/static .next/standalone/.next/static && HOSTNAME=0.0.0.0 node .next/standalone/server.js'",
+    "start": "./scripts/start-standalone.sh",
     "lint": "eslint"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   },
   "dependencies": {
     "class-variance-authority": "0.7.1",
