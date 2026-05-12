@@ -1,0 +1,26 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+    expose:
+      - "3000"
+
+  nginx:
+    image: nginx:1.27-alpine
+    depends_on:
+      - app
+    ports:
+      - "80:80"
+    volumes:
+      - ./deploy/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./deploy/nginx/conf.d:/etc/nginx/conf.d:ro
+      - zoomies-certs:/var/lib/zoomies/certs
+      - zoomies-logs:/var/log/nginx
+
+volumes:
+  zoomies-certs:
+  zoomies-logs:

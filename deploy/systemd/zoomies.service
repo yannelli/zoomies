@@ -1,0 +1,15 @@
+[Unit]
+Description=Zoomies control plane
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/zoomies
+Environment=NODE_ENV=production
+Environment=PORT=3000
+ExecStart=/usr/bin/npm run start
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
