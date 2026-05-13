@@ -13,7 +13,7 @@ breaking changes until 1.0.
 
 ## What it is (and isn't)
 
-Zoomies is the **control plane**. NGINX is the **data plane** — it handles
+Zoomies is the **control plane**. NGINX is the **data plane**: it handles
 every byte of proxied traffic, and that's where the performance comes from.
 Zoomies' job is to:
 
