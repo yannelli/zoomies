@@ -6,7 +6,7 @@ getting a development environment set up and the conventions we follow.
 ## Prerequisites
 
 - Node.js 22 LTS (see `.nvmrc`).
-- [pnpm](https://pnpm.io/) 9 or newer.
+- [pnpm](https://pnpm.io/) 10 or newer.
 - An NGINX binary on your `PATH` is required to exercise config validation /
   reload paths locally. The unit tests do not require NGINX.
 
@@ -26,7 +26,7 @@ pnpm test
 | `pnpm dev`       | Run the entry point with watch mode (tsx). |
 | `pnpm build`     | Compile TypeScript to `dist/`.             |
 | `pnpm typecheck` | Run `tsc --noEmit` against the project.    |
-| `pnpm lint`      | Run ESLint over `src/`.                    |
+| `pnpm lint`      | Run ESLint over the repository.            |
 | `pnpm format`    | Run Prettier (write).                      |
 | `pnpm test`      | Run the Vitest suite.                      |
 

@@ -1,3 +1,5 @@
+import { resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { version } from './version.js';
 
 export function main(argv: readonly string[]): number {
@@ -15,7 +17,9 @@ export function main(argv: readonly string[]): number {
   return 0;
 }
 
-const isEntrypoint = import.meta.url === `file://${process.argv[1]}`;
+const entryArg = process.argv[1];
+const entryUrl = entryArg ? pathToFileURL(resolve(entryArg)).href : undefined;
+const isEntrypoint = entryUrl !== undefined && import.meta.url === entryUrl;
 if (isEntrypoint) {
   process.exit(main(process.argv));
 }
