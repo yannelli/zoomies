@@ -1,0 +1,38 @@
+# Zoomies certificate renewal worker.
+#
+# Long-running sibling of `zoomies.service`. Polls the cert table every six
+# hours, renewing ACME-issued certificates whose validity window falls inside
+# the renewal threshold.
+#
+# Required environment (set via drop-in or /etc/zoomies/worker.env):
+#   ZOOMIES_API_TOKEN          shared with the control-plane API (used today
+#                              only by db-context, but required for parity).
+#   ZOOMIES_ACME_EMAIL         contact email registered with the ACME directory.
+# Optional environment:
+#   ZOOMIES_ACME_DIRECTORY_URL default https://acme-v02.api.letsencrypt.org/directory.
+#   ZOOMIES_STATE_DIR          default /var/lib/zoomies.
+#   ZOOMIES_CERT_DIR           default $ZOOMIES_STATE_DIR/certs.
+#
+# Permissions: this unit is intended to run under the same `zoomies` user as
+# the control plane (recommended "shared group" strategy in docs/OPERATIONS.md
+# — keep control plane / data plane isolation, share `zoomies-mgmt` group
+# with NGINX). Override `User=` here only if you picked the run-as-nginx
+# alternative described in that doc.
+
+[Unit]
+Description=Zoomies ACME renewal worker
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=zoomies
+WorkingDirectory=/opt/zoomies
+Environment=NODE_ENV=production
+EnvironmentFile=-/etc/zoomies/worker.env
+ExecStart=/usr/bin/node /opt/zoomies/dist/server/worker/main.js
+Restart=on-failure
+RestartSec=30
+
+[Install]
+WantedBy=multi-user.target

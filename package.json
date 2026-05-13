@@ -5,7 +5,8 @@
   "type": "module",
   "main": "dist/index.js",
   "bin": {
-    "zoomies": "dist/index.js"
+    "zoomies": "dist/index.js",
+    "zoomies-worker": "dist/server/worker/main.js"
   },
   "files": [
     "dist",

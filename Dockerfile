@@ -21,6 +21,11 @@ COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/public ./public
 
+# `dist/` carries the CLI + the renewal worker (`zoomies-worker` bin). The
+# worker reuses the standalone bundle's `node_modules` for native deps like
+# better-sqlite3 / acme-client.
+COPY --from=builder /app/dist ./dist
+
 EXPOSE 3000
 
 CMD ["node", "server.js"]

@@ -19,7 +19,7 @@ export const bootstrapConfig = {
       name: 'Auto SSL',
       summary: 'Reserve certificate storage and deployment hooks for ACME automation.',
       ready: false,
-      status: 'planned',
+      status: 'in-progress',
     },
     {
       name: 'Load balancing',
