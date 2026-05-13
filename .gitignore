@@ -29,5 +29,11 @@ Thumbs.db
 !.vscode/extensions.json
 !.vscode/settings.example.json
 
+# Claude Code (agent worktrees, local scratch)
+.claude/
+
+# Default state dir (SQLite DB lives here in dev)
+/.zoomies/
+
 # Misc
 *.tgz

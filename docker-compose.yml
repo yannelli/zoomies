@@ -6,8 +6,36 @@ services:
     environment:
       NODE_ENV: production
       PORT: '3000'
+      ZOOMIES_STATE_DIR: /var/lib/zoomies
+      ZOOMIES_CERT_DIR: /var/lib/zoomies/certs
+      # ZOOMIES_API_TOKEN, ZOOMIES_ACME_EMAIL, ZOOMIES_ACME_DIRECTORY_URL
+      # are required at runtime — supply via `docker compose --env-file` or
+      # an environment block in an override file.
     expose:
       - '3000'
+    volumes:
+      - zoomies-state:/var/lib/zoomies
+      - zoomies-certs:/var/lib/zoomies/certs
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ['node', 'dist/server/worker/main.js']
+    depends_on:
+      - nginx
+    environment:
+      NODE_ENV: production
+      ZOOMIES_STATE_DIR: /var/lib/zoomies
+      ZOOMIES_CERT_DIR: /var/lib/zoomies/certs
+      # Required: ZOOMIES_ACME_EMAIL, ZOOMIES_API_TOKEN.
+      # Optional: ZOOMIES_ACME_DIRECTORY_URL (defaults to LE production).
+    volumes:
+      # Share state with `app` so the cert table + cert files + ACME
+      # challenge dir live in one place. HTTP-01 challenges land under
+      # /var/lib/zoomies/acme; NGINX serves them on port 80.
+      - zoomies-state:/var/lib/zoomies
+      - zoomies-certs:/var/lib/zoomies/certs
 
   nginx:
     image: nginx:1.27-alpine
@@ -19,8 +47,10 @@ services:
       - ./deploy/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./deploy/nginx/conf.d:/etc/nginx/conf.d:ro
       - zoomies-certs:/var/lib/zoomies/certs
+      - zoomies-state:/var/lib/zoomies
       - zoomies-logs:/var/log/nginx
 
 volumes:
   zoomies-certs:
   zoomies-logs:
+  zoomies-state:

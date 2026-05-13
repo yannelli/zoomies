@@ -5,10 +5,12 @@
   "type": "module",
   "main": "dist/index.js",
   "bin": {
-    "zoomies": "dist/index.js"
+    "zoomies": "dist/index.js",
+    "zoomies-worker": "dist/server/worker/main.js"
   },
   "files": [
     "dist",
+    "dist/server/db/migrations/*.sql",
     "README.md",
     "LICENSE"
   ],
@@ -20,7 +22,7 @@
     "dev": "next dev",
     "build": "pnpm run build:web && pnpm run build:cli",
     "build:web": "next build",
-    "build:cli": "tsc -p tsconfig.cli.json",
+    "build:cli": "tsc -p tsconfig.cli.json && node scripts/copy-migrations.mjs",
     "start": "next start",
     "cli": "tsx src/index.ts",
     "typecheck": "tsc --noEmit && tsc -p tsconfig.cli.json --noEmit",
@@ -43,17 +45,27 @@
     "url": "https://github.com/yannelli/zoomies.git"
   },
   "dependencies": {
+    "acme-client": "^5.4.0",
+    "better-sqlite3": "^12.10.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "execa": "^9.6.1",
     "next": "^15.0.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "tailwind-merge": "^2.5.5"
+    "tailwind-merge": "^2.5.5",
+    "zod": "^4.4.3"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "better-sqlite3"
+    ]
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",
     "@eslint/js": "^9.18.0",
     "@tailwindcss/postcss": "^4.0.0",
+    "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^22.10.5",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",

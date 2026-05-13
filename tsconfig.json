@@ -27,6 +27,8 @@
     "dist",
     "src/index.ts",
     "src/index.test.ts",
-    "src/version.ts"
+    "src/version.ts",
+    "src/server/**",
+    "src/cli/**"
   ]
 }

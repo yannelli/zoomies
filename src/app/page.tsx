@@ -50,10 +50,19 @@ export default function Home() {
               <CardTitle className="text-xl">{feature.name}</CardTitle>
               <CardDescription>{feature.summary}</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="flex items-center gap-2">
               <Badge variant={feature.ready ? 'default' : 'secondary'}>
-                {feature.ready ? 'Scaffolded' : 'Planned'}
+                {feature.ready ? 'Ready' : 'Not ready'}
               </Badge>
+              <span
+                className={
+                  feature.status === 'in-progress'
+                    ? 'text-xs font-medium text-foreground capitalize'
+                    : 'text-xs text-muted-foreground capitalize'
+                }
+              >
+                {feature.status === 'in-progress' ? 'In progress' : feature.status}
+              </span>
             </CardContent>
           </Card>
         ))}
