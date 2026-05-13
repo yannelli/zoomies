@@ -22,6 +22,23 @@ const config = [
       ],
     },
   },
+  {
+    files: ['src/server/**/*.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['@/app/*', '@/components/*', '@/lib/*'],
+              message:
+                'src/server/** must not import from src/app, src/components, or src/lib. Keep control-plane domain code isolated from UI-side code.',
+            },
+          ],
+        },
+      ],
+    },
+  },
 ];
 
 export default config;
