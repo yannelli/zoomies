@@ -2,13 +2,17 @@ name: Release
 
 # Triggered when a maintainer pushes a `vX.Y.Z` tag. The job verifies the
 # tag against the full CI matrix, then publishes two artifacts in parallel:
-#   1. The CLI package to npm under the `zoomies` name.
+#   1. The CLI package to npm as `@yannelli/zoomies`.
 #   2. The runtime container image to GHCR at
 #      `ghcr.io/yannelli/zoomies:<tag>` (and `:latest`).
 #
+# `main` is intentionally pinned at version 0.0.0; both publish jobs run
+# `scripts/set-version.mjs` first to stamp the tag version into
+# package.json, src/version.ts, and src/lib/version.ts before building.
+#
 # Required repository secrets:
-#   NPM_TOKEN  An npm `automation` token scoped to publish the `zoomies`
-#              package. Organization-scoped is recommended.
+#   NPM_TOKEN  An npm `automation` token scoped to publish the
+#              `@yannelli/zoomies` package.
 #
 # GHCR auth uses the workflow's built-in GITHUB_TOKEN — no extra secret
 # needed, but the workflow must request `packages: write`.
@@ -78,6 +82,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Stamp version from tag
+        run: node scripts/set-version.mjs "${GITHUB_REF_NAME#v}"
+
       - name: Build CLI artifacts
         run: pnpm build:cli
 
@@ -104,6 +111,9 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Stamp version from tag
+        run: node scripts/set-version.mjs "${GITHUB_REF_NAME#v}"
 
       - name: Build and push
         uses: docker/build-push-action@v6

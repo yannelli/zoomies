@@ -20,8 +20,12 @@ ENV HOSTNAME=0.0.0.0
 # Create a non-root user and group for the runtime. The standalone bundle
 # does not need any write access inside /app — state lives under
 # ZOOMIES_STATE_DIR (a mounted volume). A fixed UID/GID makes it easy to
-# chown the host-mounted state dir from a `docker compose` host.
-RUN addgroup -g 1000 zoomies \
+# chown the host-mounted state dir from a `docker compose` host. The base
+# node:alpine image ships a `node` user at UID/GID 1000 — drop it first so
+# we can claim those IDs.
+RUN deluser --remove-home node 2>/dev/null; \
+  delgroup node 2>/dev/null; \
+  addgroup -g 1000 zoomies \
   && adduser -D -u 1000 -G zoomies zoomies
 
 # `wget` is needed for the HEALTHCHECK below. Alpine's `wget` is provided
