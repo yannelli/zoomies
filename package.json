@@ -43,6 +43,7 @@
     "url": "https://github.com/yannelli/zoomies.git"
   },
   "dependencies": {
+    "acme-client": "^5.4.0",
     "better-sqlite3": "^12.10.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
