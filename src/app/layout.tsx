@@ -1,9 +1,9 @@
-import type { Metadata } from "next";
-import "./globals.css";
+import type { Metadata } from 'next';
+import './globals.css';
 
 export const metadata: Metadata = {
-  title: "Zoomies",
-  description: "A scaffolded NGINX reverse proxy manager with a shadcn/ui control plane.",
+  title: 'Zoomies',
+  description: 'A scaffolded NGINX reverse proxy manager with a shadcn/ui control plane.',
 };
 
 export default function RootLayout({

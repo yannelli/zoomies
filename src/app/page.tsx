@@ -1,6 +1,6 @@
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { bootstrapConfig } from "@/lib/bootstrap-config";
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { bootstrapConfig } from '@/lib/bootstrap-config';
 
 export default function Home() {
   return (
@@ -28,13 +28,13 @@ export default function Home() {
               Runtime: <span className="font-medium text-foreground">Next.js + NGINX</span>
             </p>
             <p>
-              Install modes:{" "}
+              Install modes:{' '}
               <span className="font-medium text-foreground">
-                {bootstrapConfig.installModes.join(" / ")}
+                {bootstrapConfig.installModes.join(' / ')}
               </span>
             </p>
             <p>
-              API bootstrap:{" "}
+              API bootstrap:{' '}
               <code className="rounded bg-muted px-2 py-1 text-xs text-foreground">
                 /api/bootstrap
               </code>
@@ -51,8 +51,8 @@ export default function Home() {
               <CardDescription>{feature.summary}</CardDescription>
             </CardHeader>
             <CardContent>
-              <Badge variant={feature.ready ? "default" : "secondary"}>
-                {feature.ready ? "Scaffolded" : "Planned"}
+              <Badge variant={feature.ready ? 'default' : 'secondary'}>
+                {feature.ready ? 'Scaffolded' : 'Planned'}
               </Badge>
             </CardContent>
           </Card>
@@ -63,7 +63,9 @@ export default function Home() {
         <Card>
           <CardHeader>
             <CardTitle>Docker Compose</CardTitle>
-            <CardDescription>Primary deployment path for local and self-hosted installs.</CardDescription>
+            <CardDescription>
+              Primary deployment path for local and self-hosted installs.
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="rounded-xl bg-muted p-4 font-mono text-sm text-muted-foreground">
@@ -82,7 +84,9 @@ export default function Home() {
         <Card>
           <CardHeader>
             <CardTitle>Ubuntu 22.04 / 24.04 LTS</CardTitle>
-            <CardDescription>Native install scaffolding is included for systemd + NGINX.</CardDescription>
+            <CardDescription>
+              Native install scaffolding is included for systemd + NGINX.
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="rounded-xl bg-muted p-4 font-mono text-sm text-muted-foreground">

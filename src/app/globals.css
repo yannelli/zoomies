@@ -1,4 +1,4 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 :root {
   --background: oklch(1 0 0);
@@ -35,8 +35,8 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
-  --font-sans: "Inter", "Segoe UI", Arial, sans-serif;
-  --font-mono: "SFMono-Regular", "SFMono", Consolas, "Liberation Mono", monospace;
+  --font-sans: 'Inter', 'Segoe UI', Arial, sans-serif;
+  --font-mono: 'SFMono-Regular', 'SFMono', Consolas, 'Liberation Mono', monospace;
 }
 
 @media (prefers-color-scheme: dark) {

@@ -35,8 +35,15 @@ mkdir -p "${APP_DIR}"
 cp -R . "${APP_DIR}"
 cd "${APP_DIR}"
 
-npm install
-npm run build
+corepack enable
+corepack prepare pnpm@10.33.0 --activate
+pnpm install --frozen-lockfile
+pnpm run build
+
+# Stage static assets next to the standalone server bundle for systemd
+mkdir -p .next/standalone/.next
+cp -R .next/static .next/standalone/.next/static
+cp -R public .next/standalone/public
 
 cp deploy/systemd/zoomies.service "${SERVICE_FILE}"
 cp deploy/nginx/native.conf "${SITE_FILE}"

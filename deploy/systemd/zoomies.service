@@ -7,7 +7,8 @@ Type=simple
 WorkingDirectory=/opt/zoomies
 Environment=NODE_ENV=production
 Environment=PORT=3000
-ExecStart=/usr/bin/npm run start
+Environment=HOSTNAME=0.0.0.0
+ExecStart=/usr/bin/node /opt/zoomies/.next/standalone/server.js
 Restart=always
 RestartSec=5
 
