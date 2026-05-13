@@ -1,0 +1,53 @@
+{
+  "name": "zoomies",
+  "version": "0.0.0",
+  "description": "Control plane for NGINX reverse proxy: config rendering, validation, and reload orchestration.",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "zoomies": "dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "packageManager": "pnpm@10.33.0",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "keywords": [
+    "nginx",
+    "reverse-proxy",
+    "proxy-manager",
+    "control-plane"
+  ],
+  "author": "Ryan Yannelli",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yannelli/zoomies.git"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.18.0",
+    "@types/node": "^22.10.5",
+    "@typescript-eslint/eslint-plugin": "^8.20.0",
+    "@typescript-eslint/parser": "^8.20.0",
+    "eslint": "^9.18.0",
+    "prettier": "^3.4.2",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3",
+    "typescript-eslint": "^8.20.0",
+    "vitest": "^2.1.8"
+  }
+}
