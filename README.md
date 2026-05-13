@@ -1,37 +1,64 @@
 # Zoomies
 
-Zoomies is a scaffold for an NGINX reverse proxy manager with a shadcn/ui-backed admin interface.
+> A control plane for NGINX. Zoomies renders, validates, and reloads NGINX
+> configuration from a typed model so you can manage reverse-proxied sites
+> without hand-editing config files.
 
-## What is included
+[![CI](https://github.com/yannelli/zoomies/actions/workflows/ci.yml/badge.svg)](https://github.com/yannelli/zoomies/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+![Status: pre-alpha](https://img.shields.io/badge/status-pre--alpha-orange)
 
-- Next.js control plane UI built with shadcn/ui-style components
-- NGINX front proxy configured for Docker Compose
-- Shared bootstrap API for future reverse proxy, auto-SSL, load balancing, and overwrite-rule workflows
-- Native Ubuntu 22.04 / 24.04 LTS install scaffolding with systemd and NGINX config templates
+**Status:** Pre-alpha. The API, CLI, and config schema are all subject to
+breaking changes until 1.0.
 
-## Quick start
+## What it is (and isn't)
 
-### Docker Compose
+Zoomies is the **control plane**. NGINX is the **data plane**: it handles
+every byte of proxied traffic, and that's where the performance comes from.
+Zoomies' job is to:
+
+- Model sites, upstreams, and certificates as typed records.
+- Render NGINX config from those records.
+- Validate the rendered config with `nginx -t` before swapping it in.
+- Trigger a reload (or roll back) and confirm the proxy is healthy.
+
+It is **not** a new proxy, a new HTTP server, or a replacement for NGINX.
+
+See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the component sketch.
+
+## Quickstart
+
+> Zoomies is pre-alpha and currently exposes only a version stub. The full
+> CLI/API is in progress.
 
 ```bash
-docker compose up --build
+git clone https://github.com/yannelli/zoomies.git
+cd zoomies
+nvm use            # picks up .nvmrc (Node 22 LTS)
+pnpm install
+pnpm build
+node dist/index.js --version
 ```
 
-Open `http://localhost`.
-
-### Local development
+## Development
 
 ```bash
-npm install
-npm run dev
+pnpm dev           # run the entry stub with tsx watch
+pnpm typecheck     # tsc --noEmit
+pnpm lint          # eslint
+pnpm format        # prettier --write
+pnpm test          # vitest run
+pnpm build         # tsc -> dist/
 ```
 
-Open `http://localhost:3000`.
+See [`CONTRIBUTING.md`](CONTRIBUTING.md) for setup details and code
+conventions.
 
-### Native Ubuntu install
+## Why "Zoomies"?
 
-```bash
-sudo ./scripts/install-ubuntu.sh
-```
+It's what cats do when they sprint in circles for no apparent reason. NGINX
+already runs fast; Zoomies just points it where to go.
 
-The install script bootstraps Node.js, NGINX, a systemd unit, and an example site config for Ubuntu 22.04/24.04 LTS hosts.
+## License
+
+[MIT](LICENSE) © Ryan Yannelli
