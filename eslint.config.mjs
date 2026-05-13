@@ -39,6 +39,49 @@ const config = [
       ],
     },
   },
+  {
+    files: ['src/server/domain/**/*.ts'],
+    rules: {
+      // Override the broader src/server/** rule with one that also forbids
+      // I/O modules — the domain layer must remain pure. In ESLint flat
+      // config, options for the same rule do NOT merge across blocks, so
+      // we re-state the UI-boundary patterns from the parent rule here.
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              name: 'node:fs',
+              message:
+                'src/server/domain/** is the pure domain layer. I/O (fs, exec, db) must live in repositories, handlers, or the CLI.',
+            },
+            {
+              name: 'node:fs/promises',
+              message:
+                'src/server/domain/** is the pure domain layer. I/O (fs, exec, db) must live in repositories, handlers, or the CLI.',
+            },
+            {
+              name: 'execa',
+              message:
+                'src/server/domain/** is the pure domain layer. I/O (fs, exec, db) must live in repositories, handlers, or the CLI.',
+            },
+            {
+              name: 'better-sqlite3',
+              message:
+                'src/server/domain/** is the pure domain layer. I/O (fs, exec, db) must live in repositories, handlers, or the CLI.',
+            },
+          ],
+          patterns: [
+            {
+              group: ['@/app/*', '@/components/*', '@/lib/*'],
+              message:
+                'src/server/** must not import from src/app, src/components, or src/lib. Keep control-plane domain code isolated from UI-side code.',
+            },
+          ],
+        },
+      ],
+    },
+  },
 ];
 
 export default config;
