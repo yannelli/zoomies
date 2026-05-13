@@ -10,6 +10,7 @@
   },
   "files": [
     "dist",
+    "dist/server/db/migrations/*.sql",
     "README.md",
     "LICENSE"
   ],
@@ -21,7 +22,7 @@
     "dev": "next dev",
     "build": "pnpm run build:web && pnpm run build:cli",
     "build:web": "next build",
-    "build:cli": "tsc -p tsconfig.cli.json",
+    "build:cli": "tsc -p tsconfig.cli.json && node scripts/copy-migrations.mjs",
     "start": "next start",
     "cli": "tsx src/index.ts",
     "typecheck": "tsc --noEmit && tsc -p tsconfig.cli.json --noEmit",

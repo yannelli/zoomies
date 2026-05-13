@@ -1,4 +1,26 @@
-export const bootstrapConfig = {
+type FeatureStatus = 'planned' | 'in-progress' | 'shipped';
+
+export interface BootstrapFeature {
+  readonly name: string;
+  readonly summary: string;
+  readonly ready: boolean;
+  readonly status: FeatureStatus;
+}
+
+export interface BootstrapConfig {
+  readonly name: string;
+  readonly installModes: readonly string[];
+  readonly composeServices: readonly string[];
+  readonly nativeInstallSteps: readonly string[];
+  readonly features: readonly BootstrapFeature[];
+}
+
+// Annotated explicitly (rather than `as const satisfies …`) so that the
+// exported `status` type stays the full union — even when no shipped
+// snapshot of the data currently includes the `'in-progress'` literal,
+// consumers like `src/app/page.tsx` still compile-check their narrowing
+// branches against the contract, not the current values.
+export const bootstrapConfig: BootstrapConfig = {
   name: 'Zoomies',
   installModes: ['docker compose', 'ubuntu-native'],
   composeServices: ['nginx edge proxy', 'zoomies control plane'],
@@ -11,38 +33,29 @@ export const bootstrapConfig = {
   features: [
     {
       name: 'Reverse proxy',
-      summary: 'Route traffic to backend apps with a future-friendly control plane.',
-      ready: false,
-      status: 'in-progress',
+      summary: 'Route traffic to backend apps through a validated NGINX config.',
+      ready: true,
+      status: 'shipped',
     },
     {
       name: 'Auto SSL',
-      summary: 'Reserve certificate storage and deployment hooks for ACME automation.',
-      ready: false,
-      status: 'in-progress',
+      summary:
+        'Issue and renew Let’s Encrypt certificates via the ACME worker. v1 limitation: NGINX reload after issuance is operator-triggered.',
+      ready: true,
+      status: 'shipped',
     },
     {
       name: 'Load balancing',
-      summary: 'Prepare grouped upstreams and balancing policies for multi-node services.',
-      ready: false,
-      status: 'in-progress',
+      summary:
+        'Define grouped upstreams with weighted targets and per-upstream balancing policies.',
+      ready: true,
+      status: 'shipped',
     },
     {
       name: 'Overwrite rules',
-      summary: 'Leave room for header, redirect, and path rewrite overrides in the UI.',
+      summary: 'Reserve room for header, redirect, and path rewrite overrides in a future release.',
       ready: false,
       status: 'planned',
     },
   ],
-} as const satisfies {
-  name: string;
-  installModes: readonly string[];
-  composeServices: readonly string[];
-  nativeInstallSteps: readonly string[];
-  features: readonly {
-    name: string;
-    summary: string;
-    ready: boolean;
-    status: 'planned' | 'in-progress' | 'shipped';
-  }[];
 };
