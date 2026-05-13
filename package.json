@@ -1,5 +1,5 @@
 {
-  "name": "zoomies",
+  "name": "@yannelli/zoomies",
   "version": "0.0.0",
   "description": "Control plane for NGINX reverse proxy: config rendering, validation, and reload orchestration.",
   "type": "module",
