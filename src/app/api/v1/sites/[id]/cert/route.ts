@@ -22,6 +22,7 @@ import { createChallengeStore } from '@/server/certs/challenge-store';
 import { issueCertificate } from '@/server/certs/issue';
 
 export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 interface RouteContext {
   // Next.js 15 dynamic-segment params are a Promise — must be awaited.

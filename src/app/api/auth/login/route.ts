@@ -5,6 +5,7 @@ import { timingSafeEqual } from 'node:crypto';
 import { buildSessionCookieHeader } from '@/lib/session-cookie';
 
 export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 type LoginBody = { token?: unknown };
 

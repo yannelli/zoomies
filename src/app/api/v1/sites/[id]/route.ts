@@ -4,6 +4,7 @@ import { deleteSite, getSite, updateSite } from '@/server/api/handlers/sites';
 import { requireToken } from '@/server/auth/require-token';
 
 export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 // Next.js 15 dynamic-segment params are a Promise — must be awaited.
 interface RouteContext {

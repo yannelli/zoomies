@@ -4,6 +4,7 @@ import { createUpstream, listUpstreams } from '@/server/api/handlers/upstreams';
 import { requireToken } from '@/server/auth/require-token';
 
 export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request): Promise<Response> {
   try {
