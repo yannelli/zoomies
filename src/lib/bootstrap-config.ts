@@ -13,7 +13,7 @@ export const bootstrapConfig = {
       name: 'Reverse proxy',
       summary: 'Route traffic to backend apps with a future-friendly control plane.',
       ready: false,
-      status: 'planned',
+      status: 'in-progress',
     },
     {
       name: 'Auto SSL',
@@ -25,7 +25,7 @@ export const bootstrapConfig = {
       name: 'Load balancing',
       summary: 'Prepare grouped upstreams and balancing policies for multi-node services.',
       ready: false,
-      status: 'planned',
+      status: 'in-progress',
     },
     {
       name: 'Overwrite rules',

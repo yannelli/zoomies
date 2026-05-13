@@ -54,7 +54,15 @@ export default function Home() {
               <Badge variant={feature.ready ? 'default' : 'secondary'}>
                 {feature.ready ? 'Ready' : 'Not ready'}
               </Badge>
-              <span className="text-xs text-muted-foreground capitalize">{feature.status}</span>
+              <span
+                className={
+                  feature.status === 'in-progress'
+                    ? 'text-xs font-medium text-foreground capitalize'
+                    : 'text-xs text-muted-foreground capitalize'
+                }
+              >
+                {feature.status === 'in-progress' ? 'In progress' : feature.status}
+              </span>
             </CardContent>
           </Card>
         ))}
