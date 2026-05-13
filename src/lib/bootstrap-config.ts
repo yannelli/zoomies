@@ -12,22 +12,37 @@ export const bootstrapConfig = {
     {
       name: 'Reverse proxy',
       summary: 'Route traffic to backend apps with a future-friendly control plane.',
-      ready: true,
+      ready: false,
+      status: 'planned',
     },
     {
       name: 'Auto SSL',
       summary: 'Reserve certificate storage and deployment hooks for ACME automation.',
-      ready: true,
+      ready: false,
+      status: 'planned',
     },
     {
       name: 'Load balancing',
       summary: 'Prepare grouped upstreams and balancing policies for multi-node services.',
-      ready: true,
+      ready: false,
+      status: 'planned',
     },
     {
       name: 'Overwrite rules',
       summary: 'Leave room for header, redirect, and path rewrite overrides in the UI.',
-      ready: true,
+      ready: false,
+      status: 'planned',
     },
   ],
-} as const;
+} as const satisfies {
+  name: string;
+  installModes: readonly string[];
+  composeServices: readonly string[];
+  nativeInstallSteps: readonly string[];
+  features: readonly {
+    name: string;
+    summary: string;
+    ready: boolean;
+    status: 'planned' | 'in-progress' | 'shipped';
+  }[];
+};
