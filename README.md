@@ -56,7 +56,7 @@ conventions.
 
 ## Why "Zoomies"?
 
-It's what dogs do when they sprint in circles for no apparent reason. NGINX
+It's what cats do when they sprint in circles for no apparent reason. NGINX
 already runs fast; Zoomies just points it where to go.
 
 ## License
