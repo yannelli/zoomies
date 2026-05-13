@@ -29,5 +29,8 @@ Thumbs.db
 !.vscode/extensions.json
 !.vscode/settings.example.json
 
+# Claude Code (agent worktrees, local scratch)
+.claude/
+
 # Misc
 *.tgz
