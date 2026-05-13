@@ -28,6 +28,7 @@
     "src/index.ts",
     "src/index.test.ts",
     "src/version.ts",
-    "src/server/**"
+    "src/server/**",
+    "src/cli/**"
   ]
 }
