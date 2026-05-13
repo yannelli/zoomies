@@ -30,7 +30,7 @@ const config = [
         {
           patterns: [
             {
-              group: ['@/app/*', '@/components/*', '@/lib/*'],
+              group: ['@/app/**', '@/components/**', '@/lib/**'],
               message:
                 'src/server/** must not import from src/app, src/components, or src/lib. Keep control-plane domain code isolated from UI-side code.',
             },
@@ -77,7 +77,7 @@ const config = [
           ],
           patterns: [
             {
-              group: ['@/app/*', '@/components/*', '@/lib/*'],
+              group: ['@/app/**', '@/components/**', '@/lib/**'],
               message:
                 'src/server/** must not import from src/app, src/components, or src/lib. Keep control-plane domain code isolated from UI-side code.',
             },
