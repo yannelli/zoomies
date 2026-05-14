@@ -1,9 +1,14 @@
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { AtomicRollback } from './atomic-write.js';
 import type { HealthProbeOptions, HealthProbeResult } from './health-probe.js';
 import {
   applyDesiredState,
+  signalReload,
   type ApplyDesiredStateOptions,
   type NginxReloadResult,
   type ReloadDeps,
@@ -353,6 +358,115 @@ describe('applyDesiredState — probe failure with rollback-reload also failing'
     expect(result).toEqual({ ok: false, step: 'probe', probe: badProbe });
     expect(reload).toHaveBeenCalledTimes(2);
     expect(errSpy).toHaveBeenCalled();
+  });
+});
+
+describe('signalReload', () => {
+  let tempDir: string;
+
+  beforeEach(async () => {
+    tempDir = await mkdtemp(join(tmpdir(), 'zoomies-pidfile-'));
+  });
+
+  afterEach(async () => {
+    await rm(tempDir, { recursive: true, force: true });
+  });
+
+  it('sends SIGHUP to the pid in the file and reports exitCode=0', async () => {
+    const pidfile = join(tempDir, 'nginx.pid');
+    await writeFile(pidfile, '4242\n');
+
+    // Stub process.kill so the test doesn't actually try to signal pid 4242
+    // (which is overwhelmingly likely to belong to something we shouldn't
+    // disturb, if it exists at all).
+    const killSpy = vi.spyOn(process, 'kill').mockImplementation(() => true);
+
+    const result = await signalReload(pidfile);
+
+    expect(result).toEqual({ exitCode: 0, stderr: '' });
+    expect(killSpy).toHaveBeenCalledTimes(1);
+    expect(killSpy).toHaveBeenCalledWith(4242, 'SIGHUP');
+  });
+
+  it('returns exitCode=1 with a descriptive stderr when the pidfile is missing', async () => {
+    const pidfile = join(tempDir, 'absent.pid');
+
+    const result = await signalReload(pidfile);
+
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr).toContain('read pidfile');
+    expect(result.stderr).toContain(pidfile);
+  });
+
+  it('returns exitCode=1 when the pidfile does not contain a positive integer', async () => {
+    const pidfile = join(tempDir, 'garbage.pid');
+    await writeFile(pidfile, 'not-a-pid\n');
+
+    const result = await signalReload(pidfile);
+
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr).toContain('did not contain a positive integer');
+  });
+
+  it('returns exitCode=1 when process.kill throws (e.g. ESRCH)', async () => {
+    const pidfile = join(tempDir, 'stale.pid');
+    await writeFile(pidfile, '99999\n');
+
+    vi.spyOn(process, 'kill').mockImplementation(() => {
+      const err = new Error('kill ESRCH') as NodeJS.ErrnoException;
+      err.code = 'ESRCH';
+      throw err;
+    });
+
+    const result = await signalReload(pidfile);
+
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr).toContain('SIGHUP pid 99999');
+    expect(result.stderr).toContain('ESRCH');
+  });
+});
+
+describe('applyDesiredState — pidfile-driven reload backend', () => {
+  let tempDir: string;
+
+  beforeEach(async () => {
+    tempDir = await mkdtemp(join(tmpdir(), 'zoomies-pidfile-applyds-'));
+  });
+
+  afterEach(async () => {
+    await rm(tempDir, { recursive: true, force: true });
+  });
+
+  it('routes reloads through SIGHUP when ZOOMIES_NGINX_PIDFILE is set', async () => {
+    const pidfile = join(tempDir, 'nginx.pid');
+    await writeFile(pidfile, '1234\n');
+    vi.stubEnv('ZOOMIES_NGINX_PIDFILE', pidfile);
+
+    const killSpy = vi.spyOn(process, 'kill').mockImplementation(() => true);
+    // Build a partial deps WITHOUT a reload override so the env-driven
+    // default kicks in. Every other dep is stubbed so the orchestrator's
+    // other steps stay pure.
+    const partialDeps: Partial<ReloadDeps> = {
+      validate: vi.fn(async () => okValidation()),
+      probe: vi.fn(
+        async (): Promise<HealthProbeResult> => ({ ok: true, attempts: 1, lastStatus: 200 }),
+      ),
+      listManagedFiles: vi.fn(async () => []),
+      writeAtomic: vi.fn(async () => makeRollback()),
+      deleteAtomic: vi.fn(async () => makeRollback()),
+    };
+    const opts: ApplyDesiredStateOptions = {
+      sitesDir: SITES_DIR,
+      healthCheckUrl: 'http://127.0.0.1/healthz',
+      deps: partialDeps,
+    };
+    const rendered = new Map<string, string>([['a', 'A']]);
+
+    const result = await applyDesiredState(rendered, opts);
+
+    expect(result).toEqual({ ok: true, step: 'success' });
+    expect(killSpy).toHaveBeenCalledTimes(1);
+    expect(killSpy).toHaveBeenCalledWith(1234, 'SIGHUP');
   });
 });
 

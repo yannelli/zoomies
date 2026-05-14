@@ -31,7 +31,14 @@ RUN deluser --remove-home node 2>/dev/null; \
 # `wget` is needed for the HEALTHCHECK below. Alpine's `wget` is provided
 # by BusyBox and is already on the image — kept explicit so the dependency
 # is documented.
-RUN apk add --no-cache wget
+#
+# `nginx` is installed so the worker (and any future in-app reload bridge)
+# can run `nginx -t` against candidate configs before signalling the
+# running NGINX master. The binary is only invoked for validation in this
+# container — the data plane keeps running in the separate `nginx`
+# service. `openssl` is used by the demo bootstrap to materialise a
+# self-signed cert if the NGINX entrypoint has not yet written one.
+RUN apk add --no-cache wget nginx openssl
 
 COPY --from=builder --chown=zoomies:zoomies /app/.next/standalone ./
 COPY --from=builder --chown=zoomies:zoomies /app/.next/static ./.next/static
