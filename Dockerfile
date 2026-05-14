@@ -42,6 +42,17 @@ COPY --from=builder --chown=zoomies:zoomies /app/public ./public
 # better-sqlite3 / acme-client.
 COPY --from=builder --chown=zoomies:zoomies /app/dist ./dist
 
+# Pre-create the state directory with the runtime user's ownership so the
+# app can write to it whether it's left as a plain directory in the image
+# overlay (e.g. `docker run` without volumes, single-host PaaS deploys) or
+# mounted over by a named volume (Docker copies the underlying ownership
+# to a freshly initialised volume). Aligning the env-var default with the
+# documented production path (`docs/INSTALL.md`) means the image is usable
+# without any extra `-e ZOOMIES_STATE_DIR=...` flags.
+ENV ZOOMIES_STATE_DIR=/var/lib/zoomies
+RUN mkdir -p /var/lib/zoomies && chown zoomies:zoomies /var/lib/zoomies
+VOLUME ["/var/lib/zoomies"]
+
 USER zoomies
 
 EXPOSE 3000
