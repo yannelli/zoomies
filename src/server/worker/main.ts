@@ -30,6 +30,7 @@ import { resolve, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 import { getDb } from '../api/db-context.js';
+import { ensureDemoSite } from '../bootstrap/demo-site.js';
 import { CertRepository } from '../repositories/cert-repository.js';
 import { loadOrCreateAccount, type AcmeAccount } from '../certs/acme-account.js';
 import { createChallengeStore, type ChallengeStore } from '../certs/challenge-store.js';
@@ -58,12 +59,13 @@ interface WorkerConfig {
   certDir: string;
 }
 
-function readConfigFromEnv(): WorkerConfig {
+function readConfigFromEnv(): WorkerConfig | { error: string } {
   const contactEmail = process.env.ZOOMIES_ACME_EMAIL;
   if (contactEmail === undefined || contactEmail === '') {
-    throw new Error(
-      'ZOOMIES_ACME_EMAIL is required — set it to a contact email registered with the ACME directory',
-    );
+    return {
+      error:
+        'ZOOMIES_ACME_EMAIL is required — set it to a contact email registered with the ACME directory',
+    };
   }
   const directoryUrl = process.env.ZOOMIES_ACME_DIRECTORY_URL ?? DEFAULT_DIRECTORY_URL;
   const stateDir = process.env.ZOOMIES_STATE_DIR ?? join(process.cwd(), '.zoomies');
@@ -159,7 +161,42 @@ export async function main(opts?: WorkerOptions): Promise<void> {
   const intervalMs = opts?.intervalMs ?? DEFAULT_INTERVAL_MS;
   const once = opts?.once ?? false;
 
+  // Demo bootstrap runs first and is independent of ACME. It opens the
+  // DB, materialises a snakeoil cert if missing, and seeds a single Site
+  // pointing at $ZOOMIES_DEMO_UPSTREAM so the proxy is usable on first
+  // `docker compose up` without any operator action. The function
+  // returns silently when ZOOMIES_DEMO_UPSTREAM is unset.
+  try {
+    const demoResult = await ensureDemoSite({ db: getDb() });
+    if (demoResult.status !== 'disabled') {
+      console.info('zoomies-worker: demo bootstrap', demoResult);
+    }
+  } catch (err) {
+    // A failure here should not stop ACME renewals — log and continue.
+    console.error('zoomies-worker: demo bootstrap failed (non-fatal):', err);
+  }
+
   const config = readConfigFromEnv();
+  if ('error' in config) {
+    // ACME is opt-in. When the operator hasn't supplied credentials the
+    // worker stays alive (so SIGTERM is honoured and the container does
+    // not crash-loop) but skips the renewal loop entirely. The demo
+    // bootstrap above has already done its work either way.
+    console.warn('zoomies-worker:', config.error);
+    console.warn(
+      'zoomies-worker: idling without renewal loop. Set ZOOMIES_ACME_EMAIL to enable cert renewal.',
+    );
+    if (once) {
+      return;
+    }
+    const idle = createAbortSignal();
+    try {
+      await idle.wait;
+    } finally {
+      idle.dispose();
+    }
+    return;
+  }
 
   // Make sure the state, cert, and ACME challenge directories exist before
   // any code reaches for them. `recursive: true` makes this idempotent.

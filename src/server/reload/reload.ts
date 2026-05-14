@@ -24,7 +24,7 @@
  */
 
 import { execa } from 'execa';
-import { readdir } from 'node:fs/promises';
+import { readFile, readdir } from 'node:fs/promises';
 import { basename, resolve } from 'node:path';
 
 import { getNginxBinary } from '../validator/nginx-binary.js';
@@ -156,6 +156,61 @@ async function defaultReload(bin: string, args: readonly string[]): Promise<Ngin
 }
 
 /**
+ * Alternative `reload` for environments where the control plane and NGINX
+ * live in sibling containers that share a PID namespace (compose default).
+ * We can't exec `nginx -s reload` from a container that doesn't run NGINX
+ * itself, but we can read the master pid from a pidfile mounted on a
+ * shared volume and send it SIGHUP directly.
+ *
+ * The argv pair is ignored — kept in the signature so this slots into the
+ * {@link ReloadDeps.reload} seam without a wrapper. The synthesised
+ * {@link NginxReloadResult} surfaces read/parse/kill failures as
+ * `exitCode: 1` with a descriptive stderr so the orchestrator's rollback
+ * branch behaves the same as it does for the `nginx -s reload` path.
+ */
+export async function signalReload(pidfilePath: string): Promise<NginxReloadResult> {
+  let raw: string;
+  try {
+    raw = await readFile(pidfilePath, 'utf8');
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return { exitCode: 1, stderr: `read pidfile ${pidfilePath}: ${message}` };
+  }
+
+  const pid = Number.parseInt(raw.trim(), 10);
+  if (!Number.isInteger(pid) || pid <= 0) {
+    return {
+      exitCode: 1,
+      stderr: `pidfile ${pidfilePath} did not contain a positive integer (got ${JSON.stringify(raw)})`,
+    };
+  }
+
+  try {
+    process.kill(pid, 'SIGHUP');
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return { exitCode: 1, stderr: `SIGHUP pid ${pid}: ${message}` };
+  }
+
+  return { exitCode: 0, stderr: '' };
+}
+
+/**
+ * Pick the reload backend at dependency-resolve time. When the env var
+ * `ZOOMIES_NGINX_PIDFILE` is set we assume the orchestrator is running in
+ * a sibling container to NGINX (compose mode) and signal the master pid
+ * directly. Otherwise we fall back to `nginx -s reload` via execa, which
+ * is the native/systemd model.
+ */
+function pickDefaultReload(): (bin: string, args: readonly string[]) => Promise<NginxReloadResult> {
+  const pidfile = process.env.ZOOMIES_NGINX_PIDFILE;
+  if (pidfile !== undefined && pidfile !== '') {
+    return () => signalReload(pidfile);
+  }
+  return defaultReload;
+}
+
+/**
  * Build the full {@link ReloadDeps} record, layering caller overrides onto
  * the defaults. The defaults are constructed lazily here (rather than at
  * module load) so tests that stub the validator or atomic-write modules can
@@ -164,7 +219,7 @@ async function defaultReload(bin: string, args: readonly string[]): Promise<Ngin
 function resolveDeps(overrides: Partial<ReloadDeps> | undefined): ReloadDeps {
   return {
     validate: overrides?.validate ?? validateConfig,
-    reload: overrides?.reload ?? defaultReload,
+    reload: overrides?.reload ?? pickDefaultReload(),
     probe: overrides?.probe ?? probeHealth,
     listManagedFiles: overrides?.listManagedFiles ?? defaultListManagedFiles,
     writeAtomic: overrides?.writeAtomic ?? writeAtomicImpl,
