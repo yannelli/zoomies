@@ -1,6 +1,21 @@
+import Link from 'next/link';
+
 import { Badge } from '@/components/ui/badge';
+import { buttonVariants } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { bootstrapConfig } from '@/lib/bootstrap-config';
+
+// Map each declared feature to the page that actually lets the operator
+// act on it. Features without an actionable destination (e.g. planned
+// items) keep `href` undefined and render as a static card. Keeping the
+// mapping here — rather than on the `BootstrapFeature` data model — lets
+// `bootstrapConfig` stay a pure data description while the page owns
+// the routing concern.
+const FEATURE_HREFS: Record<string, string> = {
+  'Reverse proxy': '/sites',
+  'Auto SSL': '/sites',
+  'Load balancing': '/upstreams',
+};
 
 export default function Home() {
   return (
@@ -16,6 +31,17 @@ export default function Home() {
               A starter control panel for an approachable reverse proxy manager with space for
               auto-SSL, load balancing, overwrite rules, and Cloudflare-style routing workflows.
             </p>
+          </div>
+          <div className="flex flex-wrap gap-3 pt-2">
+            <Link href="/sites/new" className={buttonVariants()}>
+              New site
+            </Link>
+            <Link href="/upstreams/new" className={buttonVariants({ variant: 'secondary' })}>
+              New upstream
+            </Link>
+            <Link href="/sites" className={buttonVariants({ variant: 'ghost' })}>
+              View sites
+            </Link>
           </div>
         </div>
         <Card className="border-dashed">
@@ -44,28 +70,50 @@ export default function Home() {
       </section>
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {bootstrapConfig.features.map((feature) => (
-          <Card key={feature.name}>
-            <CardHeader>
-              <CardTitle className="text-xl">{feature.name}</CardTitle>
-              <CardDescription>{feature.summary}</CardDescription>
-            </CardHeader>
-            <CardContent className="flex items-center gap-2">
-              <Badge variant={feature.ready ? 'default' : 'secondary'}>
-                {feature.ready ? 'Ready' : 'Not ready'}
-              </Badge>
-              <span
-                className={
-                  feature.status === 'in-progress'
-                    ? 'text-xs font-medium text-foreground capitalize'
-                    : 'text-xs text-muted-foreground capitalize'
-                }
-              >
-                {feature.status === 'in-progress' ? 'In progress' : feature.status}
-              </span>
-            </CardContent>
-          </Card>
-        ))}
+        {bootstrapConfig.features.map((feature) => {
+          const href = FEATURE_HREFS[feature.name];
+          const inner = (
+            <Card
+              className={
+                href !== undefined
+                  ? 'h-full transition-colors hover:border-foreground/30 hover:bg-muted/40'
+                  : 'h-full'
+              }
+            >
+              <CardHeader>
+                <CardTitle className="text-xl">{feature.name}</CardTitle>
+                <CardDescription>{feature.summary}</CardDescription>
+              </CardHeader>
+              <CardContent className="flex items-center gap-2">
+                <Badge variant={feature.ready ? 'default' : 'secondary'}>
+                  {feature.ready ? 'Ready' : 'Not ready'}
+                </Badge>
+                <span
+                  className={
+                    feature.status === 'in-progress'
+                      ? 'text-xs font-medium text-foreground capitalize'
+                      : 'text-xs text-muted-foreground capitalize'
+                  }
+                >
+                  {feature.status === 'in-progress' ? 'In progress' : feature.status}
+                </span>
+              </CardContent>
+            </Card>
+          );
+
+          return href !== undefined ? (
+            <Link
+              key={feature.name}
+              href={href}
+              aria-label={`Open ${feature.name}`}
+              className="rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            >
+              {inner}
+            </Link>
+          ) : (
+            <div key={feature.name}>{inner}</div>
+          );
+        })}
       </section>
 
       <section className="grid gap-4 lg:grid-cols-2">

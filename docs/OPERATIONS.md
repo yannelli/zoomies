@@ -74,16 +74,41 @@ file access. Not recommended for production.
 
 ## Environment variables
 
-| Variable                  | Default                    | Purpose                                            |
-| ------------------------- | -------------------------- | -------------------------------------------------- |
-| `ZOOMIES_NGINX_BIN`       | `/usr/sbin/nginx`          | Path to the NGINX binary (used for `-t` + reload). |
-| `ZOOMIES_NGINX_SITES_DIR` | `/etc/zoomies/nginx/sites` | Managed include directory.                         |
-| `ZOOMIES_STATE_DIR`       | `/var/lib/zoomies`         | SQLite DB + ACME challenge dir.                    |
-| `ZOOMIES_HEALTH_URL`      | `http://127.0.0.1/healthz` | URL probed after each reload.                      |
-| `ZOOMIES_API_TOKEN`       | _required (Phase 6)_       | Bearer token for the HTTP API.                     |
+| Variable                   | Default                    | Purpose                                                                                                                                                          |
+| -------------------------- | -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ZOOMIES_NGINX_BIN`        | `/usr/sbin/nginx`          | Path to the NGINX binary (used for `-t` + reload on the native install).                                                                                         |
+| `ZOOMIES_NGINX_SITES_DIR`  | `/etc/zoomies/nginx/sites` | Managed include directory.                                                                                                                                       |
+| `ZOOMIES_NGINX_PIDFILE`    | _unset_                    | When set (compose / containerized installs), reloads switch from `nginx -s reload` to `SIGHUP` against the pid in this file. See "Containerized installs" below. |
+| `ZOOMIES_STATE_DIR`        | `/var/lib/zoomies`         | SQLite DB + ACME challenge dir.                                                                                                                                  |
+| `ZOOMIES_HEALTH_CHECK_URL` | `http://127.0.0.1/healthz` | URL probed after each reload.                                                                                                                                    |
+| `ZOOMIES_API_TOKEN`        | _required_                 | Bearer token for the HTTP API.                                                                                                                                   |
 
-The defaults assume a native Linux install. The Docker image will surface
-the same names with appropriate in-container defaults.
+The defaults assume a native Linux install. The Docker image surfaces
+the same names with appropriate in-container defaults; see
+[`INSTALL.md`](./INSTALL.md) for the full Compose-mode reference,
+including the `ZOOMIES_DEMO_*` and `ZOOMIES_DEFAULT_CERT_*` overrides.
+
+## Containerized installs (Docker Compose)
+
+The Compose path runs the control plane and NGINX in sibling
+containers. The reload mechanism then differs from the native path in
+two ways:
+
+- The control plane has no access to NGINX's pid file via the usual
+  `nginx -s reload` codepath (the binary in the control-plane container
+  isn't talking to the data-plane master). Instead, set
+  `ZOOMIES_NGINX_PIDFILE=/run/zoomies-nginx/nginx.pid` (already wired in
+  the shipped `docker-compose.yml`) so the reload orchestrator reads
+  the master pid from a shared volume and sends `SIGHUP` directly.
+- The control-plane containers share NGINX's PID namespace via
+  `pid: service:nginx`. Without it the pid read from the file would not
+  resolve in the worker's process namespace.
+
+The validator (`nginx -t`) still uses a local `nginx` binary inside the
+control-plane image (installed in the runner stage of the shipped
+Dockerfile) because it has to run before the candidate config touches
+disk. Keep the validator binary and the data-plane binary on the same
+major version.
 
 ## Failure modes
 
