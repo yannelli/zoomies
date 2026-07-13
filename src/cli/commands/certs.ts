@@ -2,8 +2,7 @@
  * `zoomies certs <subcommand>` — issue / list cert rows.
  *
  * `issue` blocks until the ACME order completes (10–60 s in production
- * against Let's Encrypt). The HTTP API does not yet expose a list-certs
- * endpoint, so `list` is local-only for now.
+ * against Let's Encrypt). `list` works in both local and HTTP modes.
  */
 
 import { CliClientError } from '../client.js';
@@ -17,7 +16,7 @@ Subcommands:
                          Blocks until the ACME order completes (10-60 seconds
                          against the production Let's Encrypt API).
                          Local mode requires ZOOMIES_ACME_EMAIL to be set.
-  list                   Tabular listing of all certs (local mode only).
+  list                   Tabular listing of all certs.
 `;
 
 function shortId(id: string): string {
@@ -69,12 +68,6 @@ async function runIssue(args: readonly string[], ctx: CommandContext): Promise<n
 }
 
 async function runList(ctx: CommandContext): Promise<number> {
-  if (ctx.mode === 'http') {
-    ctx.stderr.write(
-      'zoomies certs: listing certs over HTTP is not yet supported; rerun with --local\n',
-    );
-    return 2;
-  }
   try {
     const certs = await ctx.client.certs.list();
     if (certs.length === 0) {

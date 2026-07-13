@@ -294,7 +294,7 @@ async function rollbackAll(handles: readonly AtomicRollback[]): Promise<void> {
  * Contract:
  *   - `rendered` is the output of `renderBundle`: a map from site id to the
  *     NGINX `server { ... }` snippet for that site. Site ids are presumed
- *     safe (UUIDs per Phase 1); we do not sanitize them against `..`.
+ *     safe (domain UUIDs); we do not sanitize them against `..`.
  *   - `opts.sitesDir` is the absolute path of the directory Zoomies owns.
  *     Anything `*.conf` in there that is not a current site id is an orphan
  *     and will be deleted.

@@ -14,7 +14,7 @@ The control plane ships as a single package with two artifacts:
 2. A **CLI binary** (`zoomies`) emitted to `dist/` from `src/index.ts` for
    admin/automation use.
 
-Status: pre-alpha. The architecture is sketched in `docs/ARCHITECTURE.md`.
+Status: alpha. The architecture is sketched in `docs/ARCHITECTURE.md`.
 Read it before proposing structural changes.
 
 ## Stack
@@ -34,7 +34,7 @@ Read it before proposing structural changes.
 src/app/           # Next.js App Router (UI + Route Handlers)
 src/components/ui/ # shadcn/ui primitives (author-owned)
 src/lib/           # shared client/server utilities (cn, bootstrap-config)
-src/server/        # (future) control-plane domain code, called from Route Handlers
+src/server/        # control-plane domain code, called from Route Handlers
 src/index.ts       # CLI entry — emitted to dist/ via tsconfig.cli.json
 src/version.ts     # version constant shared by CLI
 src/*.test.ts      # colocated unit tests (CLI / server domain code only)

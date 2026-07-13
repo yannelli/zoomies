@@ -56,4 +56,46 @@ describe('reload command', () => {
     expect(text).toMatch(/^ok/);
     expect(text).toContain('step=success');
   });
+
+  it('http mode happy path prints ok and returns 0', async () => {
+    const apply = vi.fn().mockResolvedValue({ ok: true, step: 'success' });
+    const client = fakeClient({ apply });
+    const out = captureStream();
+    const err = captureStream();
+    const ctx: CommandContext = {
+      mode: 'http',
+      httpUrl: 'http://localhost:3000',
+      stdout: out.stream,
+      stderr: err.stream,
+      client,
+    };
+    const code = await reloadCommand.run([], ctx);
+    expect(code).toBe(0);
+    expect(apply).toHaveBeenCalledOnce();
+    expect(out.chunks.join('')).toContain('step=success');
+  });
+
+  it('prints failure details and returns 1', async () => {
+    const apply = vi.fn().mockResolvedValue({
+      ok: false,
+      step: 'config',
+      message: 'ZOOMIES_NGINX_SITES_DIR is not set',
+    });
+    const client = fakeClient({ apply });
+    const out = captureStream();
+    const err = captureStream();
+    const ctx: CommandContext = {
+      mode: 'http',
+      httpUrl: 'http://localhost:3000',
+      stdout: out.stream,
+      stderr: err.stream,
+      client,
+    };
+    const code = await reloadCommand.run([], ctx);
+    expect(code).toBe(1);
+    const text = err.chunks.join('');
+    expect(text).toMatch(/^failed/);
+    expect(text).toContain('step=config');
+    expect(text).toContain('ZOOMIES_NGINX_SITES_DIR is not set');
+  });
 });

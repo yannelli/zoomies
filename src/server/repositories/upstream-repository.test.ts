@@ -41,8 +41,8 @@ describe('UpstreamRepository', () => {
     expect(created.name).toBe('web-pool');
     expect(created.loadBalancer).toBe('round_robin');
     expect(created.targets).toEqual([{ host: 'backend.internal', port: 8080, weight: 1 }]);
-    // The Phase 1 UpstreamTargetSchema does not surface `position` — it's a
-    // storage detail and must not leak out.
+    // UpstreamTargetSchema does not surface `position` — it's a storage
+    // detail and must not leak out.
     expect(created.targets[0]).not.toHaveProperty('position');
     expect(created.createdAt).toBe(created.updatedAt);
   });

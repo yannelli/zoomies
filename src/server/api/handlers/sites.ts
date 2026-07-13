@@ -10,9 +10,10 @@
  *     `ZodError`) bubble verbatim so the Route Handler can hand them to
  *     {@link mapErrorToResponse} unchanged.
  *
- * No NGINX reload, no filesystem writes, no logging. Reload triggering is
- * deferred until Phase 7 wires the UI to these endpoints — that's when we
- * actually have a consumer that benefits from a downstream `applyDesiredState`.
+ * No NGINX reload, no filesystem writes, no logging. Operators apply the
+ * resulting desired state via POST /api/v1/reload (or `zoomies reload`).
+ * Mutations intentionally do not auto-reload so the control plane stays
+ * usable without a live NGINX.
  */
 
 import type { z } from 'zod';
