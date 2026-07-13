@@ -32,7 +32,7 @@ See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the component sketch.
 
 - **Web UI** at `/login`, `/sites`, `/upstreams` — cookie-gated CRUD with
   shadcn-style primitives.
-- **HTTP API** under `/api/v1/{sites,upstreams,sites/[id]/cert}` — bearer-
+- **HTTP API** under `/api/v1/{sites,upstreams,certs,reload,sites/[id]/cert}` — bearer-
   token-guarded; `DomainError` and `ZodError` map to clean HTTP statuses.
 - **CLI** — `zoomies sites|upstreams|certs|reload|status`. Runs in
   `--local` mode (direct SQLite access) or HTTP mode against a running

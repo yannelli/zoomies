@@ -66,10 +66,12 @@ exposes.
 
 - Single-tenant token vs. OIDC for the API. v1 is single-token; revisit after
   the first real deployment.
-- Whether to ship NGINX inside a Docker image alongside Zoomies, or assume an
-  externally managed NGINX. Leaning toward the latter for v1.
+- How NGINX is provisioned beyond the two install paths already shipped:
+  Compose runs an NGINX sidecar next to the control plane; native installs
+  still assume an externally managed NGINX that `include`s Zoomies' sites
+  directory.
 - Whether the Route Handler API stays in-process with the Next.js server long
   term, or graduates into a dedicated Node service that the UI calls over
-  HTTP. The split would only matter once the control plane is doing
-  long-running work (cert renewal, NGINX reload supervision) that doesn't
-  fit Next.js's request lifecycle.
+  HTTP. Cert renewal and related long-running work already live in the
+  separate `zoomies-worker` process; a further split would only matter if
+  request-scoped control-plane work outgrows the Next.js lifecycle.

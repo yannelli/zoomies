@@ -11,7 +11,7 @@ import type { Upstream, UpstreamTarget } from '../domain/upstream.js';
  * inputs MUST produce byte-identical output (the test suite enforces this via
  * golden fixtures).
  *
- * NGINX validation (`nginx -t`) and reload orchestration live in later phases;
+ * NGINX validation (`nginx -t`) and reload orchestration live elsewhere;
  * this module only generates the text.
  */
 

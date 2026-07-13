@@ -32,6 +32,8 @@ import {
   type CreateUpstreamInput,
   type UpdateUpstreamInput,
 } from '../server/api/handlers/upstreams.js';
+import { listCerts } from '../server/api/handlers/certs.js';
+import { applyReload } from '../server/api/handlers/reload.js';
 import { issueCertForSite } from '../server/api/handlers/site-cert.js';
 import { getDb, getRepositories } from '../server/api/db-context.js';
 import { loadOrCreateAccount } from '../server/certs/acme-account.js';
@@ -40,8 +42,7 @@ import { issueCertificate } from '../server/certs/issue.js';
 import type { Cert } from '../server/domain/cert.js';
 import type { Site } from '../server/domain/site.js';
 import type { Upstream } from '../server/domain/upstream.js';
-import { applyDesiredState, type ApplyStep } from '../server/reload/reload.js';
-import { renderBundle } from '../server/renderer/render-bundle.js';
+import type { ApplyStep } from '../server/reload/reload.js';
 
 export type { CreateSiteInput, UpdateSiteInput, CreateUpstreamInput, UpdateUpstreamInput };
 
@@ -204,30 +205,19 @@ export function createLocalClient(): CliClient {
         });
       },
       async list() {
-        return syncAsync(() => repos().certs.list());
+        return syncAsync(() => listCerts({ certRepo: repos().certs }));
       },
     },
     reload: {
       async apply(): Promise<ReloadResult> {
-        const sitesDir = process.env.ZOOMIES_NGINX_SITES_DIR;
-        const healthCheckUrl = process.env.ZOOMIES_HEALTH_CHECK_URL;
-        if (sitesDir === undefined || sitesDir === '') {
-          return {
-            ok: false,
-            step: 'config',
-            message: 'ZOOMIES_NGINX_SITES_DIR is not set',
-          };
-        }
-        if (healthCheckUrl === undefined || healthCheckUrl === '') {
-          return {
-            ok: false,
-            step: 'config',
-            message: 'ZOOMIES_HEALTH_CHECK_URL is not set',
-          };
-        }
         const { sites, upstreams, certs } = repos();
-        const rendered = renderBundle(sites.list(), upstreams.list(), certs.list());
-        const result = await applyDesiredState(rendered, { sitesDir, healthCheckUrl });
+        const result = await applyReload({
+          siteRepo: sites,
+          upstreamRepo: upstreams,
+          certRepo: certs,
+          sitesDir: process.env.ZOOMIES_NGINX_SITES_DIR,
+          healthCheckUrl: process.env.ZOOMIES_HEALTH_CHECK_URL,
+        });
         return {
           ok: result.ok,
           step: result.step,
@@ -261,6 +251,14 @@ interface ApiErrorBody {
 
 function isErrorBody(value: unknown): value is ApiErrorBody {
   return typeof value === 'object' && value !== null;
+}
+
+function isReloadResult(value: unknown): value is ReloadResult {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+  const v = value as { ok?: unknown; step?: unknown };
+  return typeof v.ok === 'boolean' && typeof v.step === 'string';
 }
 
 async function parseJsonOrNull(response: Response): Promise<unknown> {
@@ -368,19 +366,48 @@ export function createHttpClient(baseUrl: string, token: string | undefined): Cl
         request<Cert>(`/api/v1/sites/${encodeURIComponent(siteId)}/cert`, {
           method: 'POST',
         }),
-      list: () => {
-        throw new CliClientError('listing certs over HTTP is not yet implemented; use --local', {
-          code: 'unsupported',
-        });
-      },
+      list: () => request<Cert[]>('/api/v1/certs'),
     },
     reload: {
       async apply(): Promise<ReloadResult> {
-        return {
-          ok: false,
-          step: 'unsupported',
-          message: 'reload via HTTP not yet implemented; use --local',
-        };
+        // Reload failures are intentional non-2xx responses that still carry
+        // a ReloadResult body ({ ok, step, message? }). Parse that shape
+        // regardless of status; only fall through to the generic error path
+        // for auth / unexpected payloads.
+        const response = await fetch(url('/api/v1/reload'), {
+          method: 'POST',
+          headers,
+        });
+        const body = await parseJsonOrNull(response);
+        if (isReloadResult(body)) {
+          return {
+            ok: body.ok,
+            step: body.step,
+            ...(body.message !== undefined ? { message: body.message } : {}),
+          };
+        }
+        if (!response.ok) {
+          const message =
+            isErrorBody(body) && typeof body.error === 'string'
+              ? body.error
+              : `HTTP ${response.status}`;
+          const code =
+            isErrorBody(body) && typeof body.code === 'string' ? body.code : 'http_error';
+          const details = isErrorBody(body) ? body.details : undefined;
+          const opts: { status: number; code: string; details?: unknown } = {
+            status: response.status,
+            code,
+          };
+          if (details !== undefined) {
+            opts.details = details;
+          }
+          throw new CliClientError(message, opts);
+        }
+        throw new CliClientError('unexpected reload response', {
+          status: response.status,
+          code: 'http_error',
+          details: body,
+        });
       },
     },
     status: {

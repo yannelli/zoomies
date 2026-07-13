@@ -23,7 +23,7 @@ export function main(argv: readonly string[]): number | Promise<number> {
 
   if (args.length === 0) {
     process.stdout.write(
-      `zoomies ${version} — control plane for NGINX reverse proxy (pre-alpha)\n` +
+      `zoomies ${version} — control plane for NGINX reverse proxy (alpha)\n` +
         `Run \`zoomies --help\` for the command list, \`zoomies --version\` for the version.\n`,
     );
     return 0;

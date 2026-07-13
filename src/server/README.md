@@ -1,12 +1,27 @@
 # `src/server/`
 
 Control-plane domain code shared by the Route Handler API
-(`src/app/api/**`) and the CLI (`src/index.ts`).
+(`src/app/api/**`) and the CLI (`src/index.ts` / `src/cli/**`).
 
-This is where config rendering, validation, NGINX orchestration, and the
-typed records that model sites / upstreams / certs will live. Both
-delivery surfaces (HTTP + CLI) call into this layer; neither owns
-business logic directly.
+Both delivery surfaces call into this layer; neither owns business logic
+directly. Import modules by path (e.g. `../server/reload/reload.js`) —
+there is no barrel `index.ts`.
+
+## Layout
+
+| Path            | Responsibility                                                            |
+| --------------- | ------------------------------------------------------------------------- |
+| `domain/`       | Zod schemas and typed records (site, upstream, cert, errors).             |
+| `repositories/` | SQLite persistence over the domain types.                                 |
+| `db/`           | Connection helpers and SQL migrations.                                    |
+| `api/`          | Shared handlers, DB context, and error → HTTP mapping for Route Handlers. |
+| `auth/`         | Bearer-token gate (`requireToken`).                                       |
+| `renderer/`     | Pure state → NGINX config rendering.                                      |
+| `validator/`    | `nginx -t` against a candidate bundle.                                    |
+| `reload/`       | Atomic write, SIGHUP / `nginx -s reload`, health probe, rollback.         |
+| `certs/`        | ACME account, HTTP-01 challenge store, issue / renew / scheduler.         |
+| `worker/`       | Long-running `zoomies-worker` entrypoint (renewal loop + demo bootstrap). |
+| `bootstrap/`    | Optional first-boot demo site seeding.                                    |
 
 ## Boundaries
 

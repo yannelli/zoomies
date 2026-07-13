@@ -1,9 +1,8 @@
 /**
  * `zoomies reload` — render the current bundle and trigger an NGINX reload.
  *
- * Local-only operation. The HTTP API does not yet expose a reload endpoint
- * (Phase 10 territory) — over HTTP this returns a structured "unsupported"
- * message and exits non-zero.
+ * Works in both local mode (in-process apply) and HTTP mode (POST
+ * /api/v1/reload against the running control plane).
  */
 
 import type { Command } from '../dispatcher.js';
@@ -12,11 +11,12 @@ export const RELOAD_USAGE = `Usage: zoomies reload
 
 Render the current desired state and reload NGINX.
 
-Local mode requires the following env vars to be set:
+Local mode and the HTTP control plane both require:
   ZOOMIES_NGINX_SITES_DIR   Directory Zoomies owns under /etc/nginx
   ZOOMIES_HEALTH_CHECK_URL  Post-reload smoke-test URL
 
-HTTP mode is not yet supported and will exit non-zero with a hint.
+HTTP mode POSTs /api/v1/reload on the control plane (which reads those
+env vars from the server process).
 `;
 
 export const reloadCommand: Command = {

@@ -107,8 +107,8 @@ export function updateUpstream(id: string, rawInput: unknown, deps: UpstreamHand
  * - Upstream still referenced by a site → {@link ConflictError}. The
  *   underlying SQLite FOREIGN KEY error is opaque to API consumers, so we
  *   translate it into a domain error here. (The site repository handles
- *   the inverse direction; the upstream repository was not updated for
- *   this case because it's a Phase 6 API-boundary concern.)
+ *   the inverse direction; the upstream repository leaves this translation
+ *   to the API boundary.)
  */
 export function deleteUpstream(id: string, deps: UpstreamHandlerDeps): void {
   let deleted: boolean;

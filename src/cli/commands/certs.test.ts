@@ -65,4 +65,37 @@ describe('certs command', () => {
     expect(issueForSite).toHaveBeenCalledWith('site-123');
     expect(out.chunks.join('')).toContain('example.com');
   });
+
+  it('list works in http mode and prints tabular rows', async () => {
+    const list = vi.fn().mockResolvedValue([
+      {
+        id: 'abcdef12-3456-7890-abcd-ef1234567890',
+        domain: 'example.com',
+        provider: 'acme',
+        pemPath: '/etc/zoomies/certs/example.com.pem',
+        keyPath: '/etc/zoomies/certs/example.com.key',
+        notBefore: '2026-01-01T00:00:00.000Z',
+        notAfter: '2026-04-01T00:00:00.000Z',
+        createdAt: '2026-01-01T00:00:00.000Z',
+        updatedAt: '2026-01-01T00:00:00.000Z',
+      },
+    ]);
+    const client = fakeClient({ list });
+    const out = captureStream();
+    const err = captureStream();
+    const ctx: CommandContext = {
+      mode: 'http',
+      httpUrl: 'http://localhost:3000',
+      stdout: out.stream,
+      stderr: err.stream,
+      client,
+    };
+    const code = await certsCommand.run(['list'], ctx);
+    expect(code).toBe(0);
+    expect(list).toHaveBeenCalledOnce();
+    const text = out.chunks.join('');
+    expect(text).toContain('example.com');
+    expect(text).toContain('abcdef12');
+    expect(err.chunks.join('')).toBe('');
+  });
 });

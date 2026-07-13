@@ -6,8 +6,8 @@ import { NotFoundError } from '../domain/errors.js';
 /**
  * Rollback handle returned from {@link writeAtomic} and {@link deleteAtomic}.
  *
- * The orchestrator (Phase 5 Stage 2) collects these handles in order so it
- * can unwind a multi-file change when `nginx -t` rejects the new bundle.
+ * The reload orchestrator collects these handles in order so it can unwind
+ * a multi-file change when `nginx -t` rejects the new bundle.
  * `restore()` must be idempotent: calling it twice is a no-op the second
  * time (and any time after).
  */

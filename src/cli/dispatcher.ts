@@ -1,8 +1,8 @@
 /**
  * Hand-rolled CLI argv parser and dispatcher.
  *
- * Phase 0 was explicit about not adding deps for things the standard
- * library can do; this dispatcher is intentionally minimal:
+ * Prefer the standard library over extra deps; this dispatcher is
+ * intentionally minimal:
  *   - parse top-level flags up to the first non-flag positional,
  *   - resolve a `Command` record by name,
  *   - build a `CommandContext` (no DB, no client) and hand the remaining
@@ -151,7 +151,7 @@ function writeVersion(stdout: NodeJS.WritableStream): number {
 
 function writeHelp(stdout: NodeJS.WritableStream): number {
   const banner =
-    `zoomies ${version} — control plane for NGINX reverse proxy (pre-alpha)\n` +
+    `zoomies ${version} — control plane for NGINX reverse proxy (alpha)\n` +
     `\n` +
     `Usage: zoomies [global flags] <command> [args]\n` +
     `\n` +

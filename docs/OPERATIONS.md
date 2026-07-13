@@ -74,19 +74,26 @@ file access. Not recommended for production.
 
 ## Environment variables
 
-| Variable                   | Default                    | Purpose                                                                                                                                                          |
-| -------------------------- | -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ZOOMIES_NGINX_BIN`        | `/usr/sbin/nginx`          | Path to the NGINX binary (used for `-t` + reload on the native install).                                                                                         |
-| `ZOOMIES_NGINX_SITES_DIR`  | `/etc/zoomies/nginx/sites` | Managed include directory.                                                                                                                                       |
-| `ZOOMIES_NGINX_PIDFILE`    | _unset_                    | When set (compose / containerized installs), reloads switch from `nginx -s reload` to `SIGHUP` against the pid in this file. See "Containerized installs" below. |
-| `ZOOMIES_STATE_DIR`        | `/var/lib/zoomies`         | SQLite DB + ACME challenge dir.                                                                                                                                  |
-| `ZOOMIES_HEALTH_CHECK_URL` | `http://127.0.0.1/healthz` | URL probed after each reload.                                                                                                                                    |
-| `ZOOMIES_API_TOKEN`        | _required_                 | Bearer token for the HTTP API.                                                                                                                                   |
+| Variable                     | Default                                          | Purpose                                                                                                                                                          |
+| ---------------------------- | ------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ZOOMIES_NGINX_BIN`          | `/usr/sbin/nginx`                                | Path to the NGINX binary (used for `-t` + reload on the native install).                                                                                         |
+| `ZOOMIES_NGINX_SITES_DIR`    | `/etc/zoomies/nginx/sites`                       | Managed include directory.                                                                                                                                       |
+| `ZOOMIES_NGINX_PIDFILE`      | _unset_                                          | When set (compose / containerized installs), reloads switch from `nginx -s reload` to `SIGHUP` against the pid in this file. See "Containerized installs" below. |
+| `ZOOMIES_STATE_DIR`          | `/var/lib/zoomies`                               | SQLite DB + ACME challenge dir (`${ZOOMIES_STATE_DIR}/acme`).                                                                                                    |
+| `ZOOMIES_CERT_DIR`           | `${ZOOMIES_STATE_DIR}/certs`                     | Where issued cert/key PEMs land.                                                                                                                                 |
+| `ZOOMIES_HEALTH_CHECK_URL`   | _required for reload_                            | URL probed after each reload.                                                                                                                                    |
+| `ZOOMIES_API_TOKEN`          | _required_                                       | Bearer token for the HTTP API.                                                                                                                                   |
+| `ZOOMIES_API_URL`            | `http://localhost:3000`                          | Default base URL the CLI hits in HTTP mode.                                                                                                                      |
+| `ZOOMIES_ACME_EMAIL`         | _required for worker renewal_                    | Contact email registered with the ACME directory.                                                                                                                |
+| `ZOOMIES_ACME_DIRECTORY_URL` | `https://acme-v02.api.letsencrypt.org/directory` | ACME directory URL (point at Let's Encrypt staging while testing).                                                                                               |
+| `ZOOMIES_DEMO_UPSTREAM`      | _unset_                                          | When set, the worker seeds a demo site on first boot proxying to this URL.                                                                                       |
+| `ZOOMIES_DEMO_HOSTNAME`      | `localhost`                                      | Hostname for the seeded demo site.                                                                                                                               |
+| `ZOOMIES_DEFAULT_CERT_PEM`   | `/var/lib/zoomies/certs/_default/fullchain.pem`  | Fallback TLS cert path used by the demo site / snakeoil entrypoint.                                                                                              |
+| `ZOOMIES_DEFAULT_CERT_KEY`   | `/var/lib/zoomies/certs/_default/privkey.pem`    | Fallback TLS key path used by the demo site / snakeoil entrypoint.                                                                                               |
 
-The defaults assume a native Linux install. The Docker image surfaces
-the same names with appropriate in-container defaults; see
-[`INSTALL.md`](./INSTALL.md) for the full Compose-mode reference,
-including the `ZOOMIES_DEMO_*` and `ZOOMIES_DEFAULT_CERT_*` overrides.
+The defaults above assume a native Linux install. Compose and container
+paths surface the same names with in-container values; see
+[`INSTALL.md`](./INSTALL.md) for the full install-time reference.
 
 ## Containerized installs (Docker Compose)
 
@@ -131,10 +138,20 @@ configs on disk drifted out from under Zoomies.
 
 ## ACME challenge directory
 
-Phase 8 will introduce the cert manager. When it lands, Zoomies will write
-HTTP-01 challenges to `${ZOOMIES_STATE_DIR}/acme` (default
-`/var/lib/zoomies/acme`). Your `nginx.conf` should already have a server
-block that serves `/.well-known/acme-challenge/` from that path:
+Zoomies issues and renews certificates via ACME **HTTP-01 only** in v1
+(no DNS-01 / TLS-ALPN-01). The challenge store writes tokens under:
+
+```
+${ZOOMIES_STATE_DIR}/acme/.well-known/acme-challenge/<token>
+```
+
+`${ZOOMIES_STATE_DIR}` defaults to `/var/lib/zoomies` on native installs, so
+the on-disk ACME root is `/var/lib/zoomies/acme`. Issued cert PEMs land in
+`${ZOOMIES_CERT_DIR}` (default `${ZOOMIES_STATE_DIR}/certs`).
+
+NGINX must serve `/.well-known/acme-challenge/` from that ACME root. The
+shipped `deploy/nginx/conf.d/default.conf` already does this; for a native
+install, put the equivalent block in your port-80 default server:
 
 ```nginx
 server {
@@ -146,5 +163,8 @@ server {
 }
 ```
 
-Set this up now and it will just work when the cert manager ships. Detailed
-ACME flow docs will arrive with Phase 8.
+The long-running `zoomies-worker` process handles scheduled renewal (and
+optional demo-site bootstrap). Set `ZOOMIES_ACME_EMAIL` to enable the
+renewal loop; optionally override `ZOOMIES_ACME_DIRECTORY_URL` (defaults
+to Let's Encrypt production). On-demand issuance also runs through the
+HTTP API / CLI (`zoomies certs …`) using the same challenge store.

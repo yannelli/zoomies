@@ -21,14 +21,16 @@ pnpm test
 
 ## Common scripts
 
-| Command          | What it does                               |
-| ---------------- | ------------------------------------------ |
-| `pnpm dev`       | Run the entry point with watch mode (tsx). |
-| `pnpm build`     | Compile TypeScript to `dist/`.             |
-| `pnpm typecheck` | Run `tsc --noEmit` against the project.    |
-| `pnpm lint`      | Run ESLint over the repository.            |
-| `pnpm format`    | Run Prettier (write).                      |
-| `pnpm test`      | Run the Vitest suite.                      |
+| Command          | What it does                                                          |
+| ---------------- | --------------------------------------------------------------------- |
+| `pnpm dev`       | Next.js dev server (`next dev` on http://localhost:3000).             |
+| `pnpm build`     | Build web (`next build`) + CLI (`tsc -p tsconfig.cli.json`).          |
+| `pnpm cli`       | Run the CLI through `tsx` for fast iteration (`pnpm cli sites list`). |
+| `pnpm typecheck` | `tsc --noEmit` for both the Next app and the CLI tsconfig.            |
+| `pnpm lint`      | Run ESLint over the repository.                                       |
+| `pnpm format`    | Run Prettier (write).                                                 |
+| `pnpm test`      | Run the Vitest suite.                                                 |
+| `pnpm start`     | `next start` against a production build.                              |
 
 ## Branching and commits
 

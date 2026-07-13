@@ -9,8 +9,8 @@ import { getNginxBinary } from './nginx-binary.js';
  * Result of running `nginx -t` against a candidate config fragment.
  *
  * `ok` is the only field a caller usually needs — the others are kept so the
- * reload orchestrator (Phase 5) can surface the underlying NGINX message to
- * the operator on failure.
+ * reload orchestrator can surface the underlying NGINX message to the
+ * operator on failure.
  */
 export interface ValidationResult {
   ok: boolean;
@@ -51,7 +51,7 @@ http {
  * This function is side-effect-free from the caller's POV: it never mutates
  * application state, never reloads NGINX, and always cleans its temp dir
  * (cleanup errors are swallowed so they cannot mask the validation result).
- * Phase 5 owns deciding what to do with a failed result.
+ * Callers own deciding what to do with a failed result.
  */
 export async function validateConfig(candidate: string): Promise<ValidationResult> {
   const dir = await mkdtemp(join(tmpdir(), 'zoomies-validate-'));

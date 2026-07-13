@@ -10,11 +10,10 @@
  *     as the unique key).
  *
  * NGINX reload is intentionally NOT triggered here. The new cert files
- * land on disk during issuance; the next mutation-driven reload (when a
- * site is created/updated) or scheduled reload picks them up.
- *
- * TODO(phase-9): once the API → reload bridge lands, fire a reload here
- * after a successful issuance so the new cert takes effect immediately.
+ * land on disk during issuance; the operator (or automation) can pick
+ * them up via POST /api/v1/reload or `zoomies reload`. Auto-reload after
+ * issue is deliberately skipped so issuance stays independent of the
+ * NGINX sites-dir / health-check configuration.
  */
 
 import { NotFoundError } from '../../domain/errors.js';
