@@ -1,97 +1,62 @@
 # Zoomies
 
-> A control plane for NGINX. Zoomies renders, validates, and reloads NGINX
-> configuration from a typed model so you can manage reverse-proxied sites
-> without hand-editing config files.
+Zoomies is a control plane for NGINX reverse proxies. It manages site configurations, certificates, and upstream targets from a SQLite database, validates configurations using NGINX, and reloads NGINX safely.
 
-[![CI](https://github.com/yannelli/zoomies/actions/workflows/ci.yml/badge.svg)](https://github.com/yannelli/zoomies/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-![Status: alpha](https://img.shields.io/badge/status-alpha-yellow)
+## Getting Started
 
-**Status:** Alpha. The v1 surface is complete and runnable, but the API,
-CLI, and config schema may still see breaking changes before 1.0.
+Start the control plane along with NGINX using Docker Compose:
 
-## What it is (and isn't)
+```bash
+docker compose up -d
+```
 
-Zoomies is the **control plane**. NGINX is the **data plane**: it handles
-every byte of proxied traffic, and that's where the performance comes from.
-Zoomies' job is to:
+Test the default setup:
 
-- Model sites, upstreams, and certificates as typed records.
-- Render NGINX config from those records.
-- Validate the rendered config with `nginx -t` before swapping it in.
-- Atomically swap files, trigger a reload, probe health, and roll back on
-  any failure.
-- Automate Let's Encrypt certificate issuance and renewal.
+```bash
+curl -kI https://localhost/
+```
 
-It is **not** a new proxy, a new HTTP server, or a replacement for NGINX.
+Manage site state using the command-line interface:
 
-See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the component sketch.
+```bash
+pnpm cli status
+```
 
-## What's in v1
+Refer to the [Installation Guide](docs/INSTALL.md) for custom environment configuration and production deployment guides.
 
-- **Web UI** at `/login`, `/sites`, `/upstreams` — cookie-gated CRUD with
-  shadcn-style primitives.
-- **HTTP API** under `/api/v1/{sites,upstreams,sites/[id]/cert}` — bearer-
-  token-guarded; `DomainError` and `ZodError` map to clean HTTP statuses.
-- **CLI** — `zoomies sites|upstreams|certs|reload|status`. Runs in
-  `--local` mode (direct SQLite access) or HTTP mode against a running
-  control plane.
-- **ACME worker** (`zoomies-worker`) — long-running process that polls
-  for certs nearing expiry and renews them serially. HTTP-01 challenges
-  served from a directory NGINX exposes.
-- **Reload orchestrator** — validate → atomic write → SIGHUP → health
-  probe → rollback on any failure step.
-- **SQLite persistence** with idempotent migrations and Zod-on-read.
+## Component Tour
 
-## Install
+- **Dashboard:** A cookie-gated Next.js administration panel running on port 3000 to manage sites, upstreams, and certificates.
+- **HTTP API:** A token-authorized HTTP API that exposes site management endpoints to automated systems.
+- **CLI:** A command-line companion that modifies configuration records directly in the SQLite database or interacts with the HTTP API.
+- **ACME Worker:** A serial certificate renewal agent that automates Let's Encrypt validation.
+- **Reload Orchestrator:** A validation engine that tests configurations using NGINX before applying updates, rolling back all files if NGINX validation or health checks fail.
 
-Two supported paths, both covered in [`docs/INSTALL.md`](docs/INSTALL.md):
+## Developer Setup
 
-- **Docker Compose** — the shipped `docker-compose.yml` runs the control
-  plane (`app`), an NGINX edge sidecar (`nginx`), and optionally the ACME
-  renewal worker (`worker`).
-- **Ubuntu native** — `scripts/install-ubuntu.sh` installs Node 22 if
-  needed, builds into `/opt/zoomies`, and registers `zoomies.service` and
-  `zoomies-worker.service` systemd units.
-
-For the ops side — NGINX permission strategies, the `include` contract,
-ACME challenge directory layout — see
-[`docs/OPERATIONS.md`](docs/OPERATIONS.md).
-
-## Development
+Clone the repository and install the dependencies:
 
 ```bash
 git clone https://github.com/yannelli/zoomies.git
 cd zoomies
-nvm use            # .nvmrc → Node 22 LTS
+nvm use
 pnpm install
-pnpm typecheck
 pnpm test
-pnpm dev           # next dev on http://localhost:3000
 ```
 
-Other scripts:
+Start the Next.js development server:
 
-| Command          | What it does                                                          |
-| ---------------- | --------------------------------------------------------------------- |
-| `pnpm typecheck` | `tsc --noEmit` for both the Next app and the CLI tsconfig             |
-| `pnpm lint`      | `eslint .`                                                            |
-| `pnpm format`    | `prettier --write .`                                                  |
-| `pnpm test`      | `vitest run` (NGINX-dependent e2e gated on `ZOOMIES_E2E=1`)           |
-| `pnpm build`     | `next build` (web) + `tsc -p tsconfig.cli.json` + copy SQL migrations |
-| `pnpm start`     | `next start` against the standalone bundle                            |
-| `pnpm cli`       | Run the CLI through `tsx` for fast iteration                          |
+```bash
+export ZOOMIES_API_TOKEN="dev-token"
+pnpm dev
+```
 
-See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the conventions: ESM only,
-strict TypeScript, validate-at-boundary with Zod, never write NGINX
-config without validating first, no shell-string `execa`.
+Open `http://localhost:3000/login` and input `dev-token` to access the dashboard.
 
-## Why "Zoomies"?
+## Contributing
 
-It's what cats do when they sprint in circles for no apparent reason.
-NGINX already runs fast; Zoomies just points it where to go.
+Refer to the [Contributor Guide](CONTRIBUTING.md) to learn about branching, ESLint configurations, and coding conventions.
 
 ## License
 
-[MIT](LICENSE) © Ryan Yannelli
+Zoomies is open-source software licensed under the [MIT License](LICENSE).

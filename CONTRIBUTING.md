@@ -1,55 +1,54 @@
 # Contributing to Zoomies
 
-Thanks for your interest in Zoomies. This document covers the basics of
-getting a development environment set up and the conventions we follow.
+Zoomies welcomes your contributions. Read this guide to set up your local development environment and learn the conventions of the project.
 
-## Prerequisites
+## Local Setup
 
-- Node.js 22 LTS (see `.nvmrc`).
-- [pnpm](https://pnpm.io/) 10 or newer.
-- An NGINX binary on your `PATH` is required to exercise config validation /
-  reload paths locally. The unit tests do not require NGINX.
-
-## Setup
+Run these commands to clone the repository and run the test suite:
 
 ```bash
-nvm use            # picks up .nvmrc
+git clone https://github.com/yannelli/zoomies.git
+cd zoomies
+nvm use
 pnpm install
-pnpm typecheck
 pnpm test
 ```
 
-## Common scripts
+You need Node.js 22 LTS and pnpm 10 or newer. Installing NGINX on your local system is optional; the unit tests mock NGINX by default.
 
-| Command          | What it does                               |
-| ---------------- | ------------------------------------------ |
-| `pnpm dev`       | Run the entry point with watch mode (tsx). |
-| `pnpm build`     | Compile TypeScript to `dist/`.             |
-| `pnpm typecheck` | Run `tsc --noEmit` against the project.    |
-| `pnpm lint`      | Run ESLint over the repository.            |
-| `pnpm format`    | Run Prettier (write).                      |
-| `pnpm test`      | Run the Vitest suite.                      |
+## Development Commands
 
-## Branching and commits
+Execute these commands to build, check, and format your code:
 
-- Cut feature branches off `main`. Names like `feat/site-crud`,
-  `fix/reload-rollback`, `docs/architecture` are encouraged.
-- Keep commits focused. Conventional Commits (`feat:`, `fix:`, `docs:`, etc.)
-  are appreciated but not enforced.
-- Pull requests should describe the _why_ and include a short test plan. The
-  PR template will prompt for both.
+```bash
+pnpm dev              # Start the Next.js development server
+pnpm typecheck        # Check TypeScript types for both web and CLI
+pnpm lint             # Run ESLint over the repository
+pnpm format           # Run Prettier to format your code
+pnpm build            # Build the application
+```
 
-## Code conventions
+## House Rules
 
-- ESM only (`"type": "module"`); no CommonJS in source.
-- Prefer named exports — avoid default exports.
-- Validate all external input (HTTP bodies, file contents, env) at the
-  boundary with [Zod](https://zod.dev/) before letting it into the domain.
-- Never shell out with string concatenation. Use `execa` with argument arrays.
-- Never write an NGINX config to disk without first validating it via
-  `nginx -t -c <new>`. Rollback to the previous config on failure.
+- **Boring Code Wins.** Keep code simple and straightforward. Write small units with a single responsibility. Inject dependencies and extend behavior through composition. Do not create abstractions for hypothetical future needs. Write code that a new contributor can understand in a single pass.
+- **Self-Explaining Names.** Let names carry the meaning so the call site reads like prose. Reserve comments for constraints, trade-offs, and decisions that the code cannot express. Never narrate what the code plainly does.
+- **Focused Pull Requests.** A pull request must address a single concern. Small diffs are easier to review. Break complex or blocked work into a sequence of smaller, ordered pull requests.
+- **Trust Docs Over Memory.** Read official documentation before writing code or writing documentation. Never rely on potentially stale memory. When searching for external APIs or patterns, include the year 2026 to target current versions.
 
-## Reporting bugs / requesting features
+## Branching and Pull Requests
 
-Open an issue using the appropriate template. For security issues, follow
-`SECURITY.md` instead — do not file a public issue.
+Create feature branches off `main` and name them by their category:
+
+```bash
+git checkout -b feat/your-feature-name
+```
+
+Keep your commits focused. Before submitting a pull request, verify that type checks, linter, and tests pass. Describe the motivation for your changes and include a test plan.
+
+## Code Conventions
+
+- **ES Modules Only.** Write all code using ES modules. The CLI environment uses NodeNext module resolution. You must include the `.js` extension on relative imports.
+- **Zod Boundaries.** Parse all incoming data using Zod at the application boundaries before passing objects to your domain logic.
+- **Process Spawning.** Execute shell commands using `execa` with argument arrays. Do not pass raw shell strings.
+- **Atomic Writes.** Write configuration files to a temporary file in the target directory first, then rename the file to make the write atomic.
+- **Validation First.** Always validate NGINX configuration using `nginx -t -c <temp-file>` before writing files to the active configuration directory. Roll back all files immediately if validation fails.

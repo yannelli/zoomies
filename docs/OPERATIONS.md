@@ -1,57 +1,39 @@
-# Zoomies operations
+# Operations
 
-Operator-facing guide for installing Zoomies alongside an existing NGINX. The
-[architecture sketch](./ARCHITECTURE.md) is the conceptual companion; this
-doc is the "what do I actually configure on the host" reference.
+Zoomies manages NGINX configuration fragments. Operating Zoomies requires setting up the proper include paths, user permissions, and understanding the reload orchestration lifecycle.
 
-## The NGINX contract
+## NGINX Include Contract
 
-Zoomies generates one `*.conf` file per site and drops them into a directory
-it fully owns. Your `nginx.conf` must `include` that directory inside its
-`http {}` block:
+Zoomies writes one configuration file per site. Include the target directory in your main `nginx.conf` file:
 
 ```nginx
 http {
-    # ...your existing http config...
     include /etc/zoomies/nginx/sites/*.conf;
 }
 ```
 
-- Zoomies will create, overwrite, and delete files in
-  `/etc/zoomies/nginx/sites/`. **Do not hand-edit anything there** — your
-  edit will be silently discarded on the next reload.
-- Zoomies will never modify the top-level `nginx.conf`. That file is yours.
-- Anything outside the include path (events, top-level http settings, the
-  ACME server block — see below) is the operator's responsibility.
+Do not edit files inside `/etc/zoomies/nginx/sites/` manually. Zoomies replaces them on each configuration apply. You remain responsible for all top-level NGINX configuration settings.
 
-## Permissions
+## Permission Strategies
 
-NGINX runs as `nginx` (or `www-data` on Debian/Ubuntu). Zoomies should run
-as a dedicated `zoomies` user — never as root. The control plane needs to
-(a) write files in the sites directory, and (b) tell the NGINX master
-process to reload. Pick one of the three strategies below.
+Zoomies runs as the `zoomies` user. NGINX runs as `nginx` or `www-data`. The `zoomies` user requires permission to write site configurations and send reload signals to NGINX.
 
-### Recommended: shared group
+### Recommended: Shared Group
 
-Create a `zoomies-mgmt` group and add both users to it; chown the sites dir
-to that group with `g+rwx`:
+Create a shared management group to authorize writes to the configuration folder:
 
-```sh
+```bash
 groupadd zoomies-mgmt
 usermod -aG zoomies-mgmt zoomies
-usermod -aG zoomies-mgmt nginx        # or www-data
+usermod -aG zoomies-mgmt nginx
 install -d -m 2775 -g zoomies-mgmt /etc/zoomies/nginx/sites
 ```
 
-The orchestrator shells out to `nginx -s reload`, which signals the master
-via the pid file. The `nginx` binary must be on `$PATH` (or set
-`ZOOMIES_NGINX_BIN`), and the pid file at `/run/nginx.pid` must be readable
-by `zoomies-mgmt`. This is the tightest blast radius without sudo.
+Ensure the NGINX pidfile (default `/run/nginx.pid`) allows read access to the `zoomies-mgmt` group. Zoomies uses this to signal NGINX during reload.
 
-### Alternative: sudoers rule
+### Alternative: Sudo Rules
 
-If you cannot share a group, allow `zoomies` to invoke specific NGINX
-sub-commands via sudo:
+Add a sudo rule to allow the `zoomies` user to run NGINX validation and reload commands:
 
 ```sudoers
 Defaults!/usr/sbin/nginx !requiretty
@@ -59,92 +41,34 @@ zoomies ALL=(root) NOPASSWD: /usr/sbin/nginx -s reload, \
     /usr/sbin/nginx -t -c /tmp/zoomies-validate-*/nginx.conf
 ```
 
-The wildcard on the `-t -c` path is required because the validator writes
-each candidate config to a fresh `mkdtemp` directory. Sudo's pattern matcher
-treats `*` as a glob, so this allows any path under `/tmp/zoomies-validate-`
-— effectively trusting that `/tmp` cannot be written to by an untrusted
-user, which is the standard Linux assumption. Audit your `/tmp` mount
-options (`nosuid`, `noexec`) if that worries you.
+### Alternative: Run as NGINX User
 
-### Alternative: run Zoomies as the NGINX user
+Set the systemd unit `User=nginx` to run the control plane under the NGINX system account. This removes isolation boundaries.
 
-Set the systemd unit's `User=nginx`. Simplest, but you lose the
-control-plane/data-plane isolation, and any RCE in Zoomies inherits NGINX's
-file access. Not recommended for production.
+## Reload Orchestration
 
-## Environment variables
+The reload orchestrator executes five sequential steps when applying configuration updates:
 
-| Variable                   | Default                    | Purpose                                                                                                                                                          |
-| -------------------------- | -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ZOOMIES_NGINX_BIN`        | `/usr/sbin/nginx`          | Path to the NGINX binary (used for `-t` + reload on the native install).                                                                                         |
-| `ZOOMIES_NGINX_SITES_DIR`  | `/etc/zoomies/nginx/sites` | Managed include directory.                                                                                                                                       |
-| `ZOOMIES_NGINX_PIDFILE`    | _unset_                    | When set (compose / containerized installs), reloads switch from `nginx -s reload` to `SIGHUP` against the pid in this file. See "Containerized installs" below. |
-| `ZOOMIES_STATE_DIR`        | `/var/lib/zoomies`         | SQLite DB + ACME challenge dir.                                                                                                                                  |
-| `ZOOMIES_HEALTH_CHECK_URL` | `http://127.0.0.1/healthz` | URL probed after each reload.                                                                                                                                    |
-| `ZOOMIES_API_TOKEN`        | _required_                 | Bearer token for the HTTP API.                                                                                                                                   |
+1. **Validate:** Executes `nginx -t -c <temp-file>` to verify the configuration syntax.
+2. **Write:** Writes the site configuration files to the active directory.
+3. **Reload:** Issues a `SIGHUP` signal to the NGINX master process.
+4. **Probe:** Verifies NGINX health by querying the URL defined in `ZOOMIES_HEALTH_CHECK_URL`.
+5. **Commit:** Cleans up temporary files and commits the database state.
 
-The defaults assume a native Linux install. The Docker image surfaces
-the same names with appropriate in-container defaults; see
-[`INSTALL.md`](./INSTALL.md) for the full Compose-mode reference,
-including the `ZOOMIES_DEMO_*` and `ZOOMIES_DEFAULT_CERT_*` overrides.
+If validation, write, reload, or probe steps fail, the orchestrator reverts all files to their previous states and reloads NGINX.
 
-## Containerized installs (Docker Compose)
+## ACME Challenge Integration
 
-The Compose path runs the control plane and NGINX in sibling
-containers. The reload mechanism then differs from the native path in
-two ways:
-
-- The control plane has no access to NGINX's pid file via the usual
-  `nginx -s reload` codepath (the binary in the control-plane container
-  isn't talking to the data-plane master). Instead, set
-  `ZOOMIES_NGINX_PIDFILE=/run/zoomies-nginx/nginx.pid` (already wired in
-  the shipped `docker-compose.yml`) so the reload orchestrator reads
-  the master pid from a shared volume and sends `SIGHUP` directly.
-- The control-plane containers share NGINX's PID namespace via
-  `pid: service:nginx`. Without it the pid read from the file would not
-  resolve in the worker's process namespace.
-
-The validator (`nginx -t`) still uses a local `nginx` binary inside the
-control-plane image (installed in the runner stage of the shipped
-Dockerfile) because it has to run before the candidate config touches
-disk. Keep the validator binary and the data-plane binary on the same
-major version.
-
-## Failure modes
-
-The orchestrator (`applyDesiredState`) walks five steps in order and stops
-on the first failure. Each failure has a well-defined recovery posture:
-
-| Step       | Failure means                              | What happens                                                  |
-| ---------- | ------------------------------------------ | ------------------------------------------------------------- |
-| `validate` | `nginx -t` rejected the rendered bundle.   | No disk changes. Caller gets the stderr in `validation`.      |
-| `write`    | A `writeAtomic`/`deleteAtomic` call threw. | Previously applied changes rolled back. NGINX not signalled.  |
-| `reload`   | `nginx -s reload` exited non-zero.         | All disk changes rolled back, then NGINX reloaded again.      |
-| `probe`    | Health URL failed after the reload.        | All disk changes rolled back, then NGINX reloaded again.      |
-| `success`  | n/a                                        | Rollback handles discarded; new state is the committed state. |
-
-If the post-rollback reload also fails (configs restored, but NGINX still
-refuses to re-read them), the orchestrator logs both stderrs to the systemd
-journal and returns the original failure step. The system needs hand
-intervention at that point — usually it means the previously-committed
-configs on disk drifted out from under Zoomies.
-
-## ACME challenge directory
-
-Phase 8 will introduce the cert manager. When it lands, Zoomies will write
-HTTP-01 challenges to `${ZOOMIES_STATE_DIR}/acme` (default
-`/var/lib/zoomies/acme`). Your `nginx.conf` should already have a server
-block that serves `/.well-known/acme-challenge/` from that path:
+Configure a default server block in NGINX to route Let's Encrypt HTTP-01 challenges to the challenge directory:
 
 ```nginx
 server {
     listen 80 default_server;
+
     location /.well-known/acme-challenge/ {
         root /var/lib/zoomies/acme;
     }
-    # ...everything else can 404 / redirect to https...
 }
 ```
 
-Set this up now and it will just work when the cert manager ships. Detailed
-ACME flow docs will arrive with Phase 8.
+The cert manager writes challenge files to this directory. NGINX serves these files to Let's Encrypt during the verification loop.

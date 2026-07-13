@@ -1,32 +1,24 @@
-# `src/server/`
+# Server Domain Layer
 
-Control-plane domain code shared by the Route Handler API
-(`src/app/api/**`) and the CLI (`src/index.ts`).
+The server directory contains the core domain logic for Zoomies. Both the Next.js web application and the command-line interface call into this layer.
 
-This is where config rendering, validation, NGINX orchestration, and the
-typed records that model sites / upstreams / certs will live. Both
-delivery surfaces (HTTP + CLI) call into this layer; neither owns
-business logic directly.
+## Architectural Boundaries
 
-## Boundaries
+Domain code must remain independent of the delivery mechanism. Do not import UI or application-level code into the server directory.
 
-Code in `src/server/**` MUST NOT import from:
+An ESLint rule prevents imports from these paths:
 
-- `src/app/**` (Next.js UI / Route Handlers)
-- `src/components/**` (React components)
-- `src/lib/**` (UI-side utilities)
+- `src/app/` (Next.js UI and Route Handlers)
+- `src/components/` (React components)
+- `src/lib/` (Client-side and shared UI utilities)
 
-This is enforced by ESLint (`no-restricted-imports` rule scoped to
-`src/server/**`).
+## Compiler Requirements
 
-## Compiler
+The command-line interface builds using `tsconfig.cli.json`, which enforces NodeNext module resolution. Relative imports must include the `.js` extension, even when importing a `.ts` file:
 
-`src/server/**` is built by `tsconfig.cli.json`:
+```typescript
+import { db } from './db.js';
+import { validateSite } from './site.js';
+```
 
-- `module` / `moduleResolution`: `NodeNext`
-- `exactOptionalPropertyTypes`: on
-- `verbatimModuleSyntax`: on
-
-Because resolution is NodeNext, relative imports MUST include the `.js`
-extension (e.g. `import { foo } from './foo.js'`), even when the source
-file is `.ts`. Use named exports only.
+Use named exports for all domain and server code. Next.js pages and layouts are exempt from this requirement.

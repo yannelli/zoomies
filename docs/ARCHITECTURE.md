@@ -1,75 +1,56 @@
-# Zoomies architecture
+# Architecture
 
-This is a one-page sketch of the system as currently envisioned. It is
-intentionally minimal — the goal is to bound the scope of v1, not to lock in
-implementation details.
+Zoomies operates as a control plane for NGINX. NGINX handles all data routing. Zoomies manages the configuration files, orchestrates NGINX reloads, and persists state in a SQLite database.
 
-## Two planes
+## System Layout
 
 ```
-   Browser
-      |
-      v
-+--------------------+        +---------------------+        +-----------+
-|  Zoomies (Node)    |  IPC   |       NGINX         |   net  |  Clients  |
-|  control plane     +------->+    data plane       +<------>+           |
-|  (Next.js + CLI)   |        |                     |        +-----------+
-+----------+---------+        +---------------------+
-           |
-           | reads/writes
-           v
-   +-------------------+
-   |  state (SQLite)   |
-   +-------------------+
+             Web Browser
+                  |
+                  v
+       +----------------------+
+       |  Zoomies (Node.js)   |
+       |  Control Plane       |
+       +----------+-----------+
+                  |
+                  | Writes config & sends SIGHUP
+                  v
+       +----------------------+
+       |        NGINX         | <-------> HTTP/HTTPS Clients
+       |  Data Plane (Proxy)  |
+       +----------------------+
+                  |
+                  | Persists site state
+                  v
+       +----------------------+
+       |    SQLite Database   |
+       +----------------------+
 ```
 
-**NGINX** terminates TLS and proxies every byte. We never put Node in the
-hot path.
+### Control Plane
 
-**Zoomies** owns the _intent_: which sites exist, what they proxy to, which
-certs they use. It renders that intent into NGINX config, validates it, and
-asks NGINX to reload. The dashboard UI surfaces the same intent the API
-exposes.
+The control plane runs Next.js and a command-line interface. It reads configuration requirements from the SQLite database, generates NGINX site configuration files, and requests NGINX to reload. It never processes network traffic directly.
 
-## Components (v1)
+### Data Plane
 
-| Component               | Responsibility                                                                                                                                                            |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Web UI**              | Next.js App Router + shadcn/ui in `src/app/`. Renders the same intent the API exposes.                                                                                    |
-| **HTTP API**            | Next.js Route Handlers in `src/app/api/**`; CRUD for sites/upstreams/certs; protected by token. May graduate to a dedicated Node service if Route Handler limits are hit. |
-| **State store**         | SQLite via a thin repository layer. Sites, upstreams, certs.                                                                                                              |
-| **Config renderer**     | Pure function: state -> NGINX config string. No I/O.                                                                                                                      |
-| **Validator**           | Writes rendered config to a temp file, runs `nginx -t -c`.                                                                                                                |
-| **Reload orchestrator** | Atomically swaps config, sends `SIGHUP`, probes health, rolls back on failure.                                                                                            |
-| **CLI**                 | Thin wrapper over the API (or direct, for local use). Emitted to `dist/` from `src/index.ts`.                                                                             |
-| **Cert manager**        | ACME (Let's Encrypt) via [`acme-client`]; storage in state.                                                                                                               |
+NGINX acts as the data plane. It acts as the reverse proxy, terminates TLS connections, and handles client requests. Zoomies sits outside this hot path to ensure system performance.
 
-[`acme-client`]: https://www.npmjs.com/package/acme-client
+## Component Responsibilities
 
-## Boundaries
+- **Web UI:** A Next.js App Router dashboard located under `src/app/` that manages sites and upstreams.
+- **HTTP API:** A Next.js Route Handler interface located under `src/app/api/` that processes site state mutations.
+- **State Store:** A database layer managed by SQLite to persist sites, upstreams, and certificates.
+- **Config Renderer:** A pure function that translates site records into NGINX configuration files.
+- **Validator:** A validation runner that tests candidate configurations with `nginx -t -c <temp-file>`.
+- **Reload Orchestrator:** An engine that performs atomic config writes, issues a `SIGHUP` reload signal, and verifies proxy health.
+- **CLI:** A command-line wrapper around the SQLite repository and the HTTP API.
+- **Cert Manager:** An ACME controller that handles Let's Encrypt certificates.
 
-- All external input (HTTP bodies, env vars, file contents) is parsed with
-  Zod at the boundary. Domain code receives validated types only.
-- All shell-outs go through `execa` with argument arrays — never a shell
-  string. NGINX reload paths are the only blessed shell-out site.
-- Filesystem writes use atomic temp-file + rename.
-- UI components live under `src/app/` and `src/components/`. Control-plane
-  domain code lives under `src/server/` and never imports from the UI tree.
+## Execution Rules
 
-## Non-goals for v1
+Zoomies enforces four core development boundaries:
 
-- Multi-node / clustered deployment.
-- Non-NGINX backends (HAProxy, Caddy, Envoy).
-- Built-in observability beyond access/error logs and a `/healthz` endpoint.
-
-## Open questions
-
-- Single-tenant token vs. OIDC for the API. v1 is single-token; revisit after
-  the first real deployment.
-- Whether to ship NGINX inside a Docker image alongside Zoomies, or assume an
-  externally managed NGINX. Leaning toward the latter for v1.
-- Whether the Route Handler API stays in-process with the Next.js server long
-  term, or graduates into a dedicated Node service that the UI calls over
-  HTTP. The split would only matter once the control plane is doing
-  long-running work (cert renewal, NGINX reload supervision) that doesn't
-  fit Next.js's request lifecycle.
+1. Validate all external input (HTTP payloads, environment variables, files) with Zod at the application boundary.
+2. Execute shell commands with `execa` using argument arrays. Do not pass raw shell strings.
+3. Write files atomically by writing to a temporary file first, then renaming it to the final destination.
+4. Keep control-plane code in `src/server/` independent of the Next.js UI in `src/app/`.

@@ -1,26 +1,22 @@
 # Security Policy
 
-## Reporting a Vulnerability
+Zoomies manages network routing for production traffic. Security reports receive immediate attention.
 
-Zoomies sits in the network path of every request it proxies, so we take
-security reports seriously.
+## Report a Vulnerability
 
-If you believe you've found a security vulnerability, **please do not open a
-public GitHub issue**. Instead, report it privately via GitHub's
-[security advisory form](https://github.com/yannelli/zoomies/security/advisories/new).
+Do not open a public GitHub issue for security vulnerabilities. Submit security reports privately using the GitHub Security Advisory form:
 
-Include:
+[https://github.com/yannelli/zoomies/security/advisories/new](https://github.com/yannelli/zoomies/security/advisories/new)
 
-- A description of the issue and its impact.
-- Steps to reproduce (a minimal proof-of-concept is ideal).
-- The version or commit SHA you tested against.
-- Any suggested remediation, if you have one.
+When submitting a report, include these details:
 
-You should expect an initial acknowledgement within 72 hours. We will work
-with you on a coordinated disclosure timeline.
+- A clear description of the vulnerability and its impact
+- Steps to reproduce the issue with a minimal proof of concept
+- The version or commit SHA you tested against
+- A proposed remediation if available
+
+You will receive an initial response within 72 hours. The team will work with you to coordinate a disclosure timeline.
 
 ## Supported Versions
 
-Zoomies is pre-release. Only the `main` branch receives security fixes at this
-stage. Once we cut a `1.0` release, this section will be updated to list
-supported version ranges.
+Zoomies is in active development. Only the `main` branch receives security updates. This policy will update to list supported version ranges when version 1.0 releases.
